@@ -2058,7 +2058,7 @@ var dishData = [
         });
 
         // ================================================================
-        // 导出功能（不变）
+        // ★★★ 导出功能（适配手机）★★★
         // ================================================================
         document.getElementById('exportHtmlBtn2').addEventListener('click', function() {
             var container = document.getElementById('weekMenuContent');
@@ -2083,11 +2083,25 @@ var dishData = [
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>本周食单 · 好好吃饭</title>
     <style>
         ${style}
-        .week-menu-area { display: block !important; font-size: 14px; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        body { max-width: 860px; margin: 20px auto; padding: 20px; background: #f0f2f5; }
+        /* 手机自适应覆盖 */
+        body {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 16px !important;
+            background: #f0f2f5;
+        }
+        .week-menu-area {
+            display: block !important;
+            font-size: 14px;
+            background: white;
+            padding: 20px 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
         .recipe-card { margin-bottom: 16px; }
         .selected-dishes-summary { margin-bottom: 16px; }
         .shopping-summary { margin-bottom: 12px; }
@@ -2096,7 +2110,7 @@ var dishData = [
         .shopping-summary .category-label { font-weight: 600; font-size: 14px; color: #1f3a5f; padding: 4px 0; border-bottom: 1px dashed #dbe7f6; margin-bottom: 4px; }
         .shopping-summary .list { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 4px 0; }
         .shopping-summary .list span { background: white; padding: 3px 16px; border-radius: 30px; border: 1px solid #dbe7f6; font-size: 14px; }
-        .recipe-card { border: 1px solid #e9edf4; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; background: white; }
+        .recipe-card { border: 1px solid #e9edf4; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; background: white; }
         .recipe-card h3 { font-size: 16px; font-weight: 600; margin: 0 0 4px 0; }
         .recipe-card .source { font-size: 12px; color: #7a8aa3; }
         .recipe-card .time-tag { display: inline-block; background: #e8edf6; padding: 2px 12px; border-radius: 30px; font-size: 13px; font-weight: 500; color: #1f3a5f; margin-bottom: 8px; }
@@ -2104,6 +2118,13 @@ var dishData = [
         .recipe-card ul, .recipe-card ol { padding-left: 22px; }
         .recipe-card .key-point { margin-top: 10px; padding: 10px 14px; background: #fef9e7; border-radius: 8px; border-left: 4px solid #e67e22; font-size: 14px; }
         .recipe-card .key-point::before { content: "💡 "; }
+        /* 手机窄屏优化 */
+        @media (max-width: 480px) {
+            .week-menu-area { padding: 16px 12px; }
+            .shopping-summary .list span { font-size: 13px; padding: 2px 12px; }
+            .recipe-card { padding: 12px 14px; }
+            .recipe-card h3 { font-size: 15px; }
+        }
     </style>
 </head>
 <body>
@@ -2137,20 +2158,19 @@ var dishData = [
                 }
             }
 
+            // 手机适配：宽度 420px，scale 2 保证清晰
+            var wrapperWidth = 420;
             var wrapper = document.createElement('div');
-            wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:860px;padding:20px;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+            wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + wrapperWidth + 'px;padding:16px;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
 
             var inner = document.createElement('div');
-            inner.style.cssText = 'background:white;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);';
+            inner.style.cssText = 'background:white;padding:20px 16px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);';
             var contentClone = container.cloneNode(true);
             inner.appendChild(contentClone);
             wrapper.appendChild(inner);
 
             var styles = document.querySelectorAll('style');
-            styles.forEach(function(style) {
-                var clone = style.cloneNode(true);
-                wrapper.appendChild(clone);
-            });
+            styles.forEach(function(s) { wrapper.appendChild(s.cloneNode(true)); });
 
             var extraStyle = document.createElement('style');
             extraStyle.textContent = `
@@ -2170,7 +2190,7 @@ var dishData = [
                 .reuse-tips .reuse-item:last-child { border-bottom: none; }
                 .reuse-tips .reuse-item .reuse-name { font-weight: 600; color: #1f3a5f; }
                 .reuse-tips .reuse-item .reuse-dishes { color: #5e6f8d; font-size: 13px; }
-                .recipe-card { border: 1px solid #e9edf4; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; background: white; }
+                .recipe-card { border: 1px solid #e9edf4; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; background: white; }
                 .recipe-card h3 { font-size: 16px; font-weight: 600; margin: 0 0 4px 0; }
                 .recipe-card .source { font-size: 12px; color: #7a8aa3; }
                 .recipe-card .time-tag { display: inline-block; background: #e8edf6; padding: 2px 12px; border-radius: 30px; font-size: 13px; font-weight: 500; color: #1f3a5f; margin-bottom: 8px; }
@@ -2191,7 +2211,7 @@ var dishData = [
                     backgroundColor: '#f0f2f5',
                     useCORS: true,
                     logging: false,
-                    width: 860,
+                    width: wrapperWidth,
                     height: wrapper.scrollHeight
                 }).then(function(canvas) {
                     var link = document.createElement('a');
