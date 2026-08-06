@@ -1,0 +1,2394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>一周食单 · 好好吃饭</title>
+    <!-- ====== PWA manifest（内联） ====== -->
+    <link rel="manifest" href="data:application/json,{
+      \"name\": \"一周食单 · 好好吃饭\",
+      \"short_name\": \"一周食单\",
+      \"start_url\": \".\",
+      \"display\": \"standalone\",
+      \"background_color\": \"#f0f2f5\",
+      \"theme_color\": \"#e67e22\",
+      \"icons\": [
+        {
+          \"src\": \"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23e67e22' rx='20'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-family='sans-serif'%3E🍜%3C/text%3E%3C/svg%3E\",
+          \"sizes\": \"192x192\",
+          \"type\": \"image/svg+xml\"
+        }
+      ]
+    }">
+    <!-- ====== html2canvas ====== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    </script>
+    <style>
+        /* ====== 完整样式（与你原来一致，只加了 .week-menu-area font-size） ====== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f0f2f5;
+            padding: 16px;
+            color: #1a1a1a;
+        }
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .app-header {
+            background: white;
+            padding: 16px 24px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid #e9edf4;
+        }
+        .app-header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .app-header h1 .sub {
+            font-weight: 400;
+            color: #8896ab;
+            font-size: 16px;
+            margin-left: 6px;
+        }
+        .app-header .week-info {
+            font-size: 14px;
+            color: #5e6f8d;
+            background: #f0f3f8;
+            padding: 4px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f1f3f5;
+            padding: 4px 14px 4px 18px;
+            border-radius: 30px;
+            gap: 8px;
+        }
+        .search-box input {
+            border: none;
+            background: transparent;
+            padding: 8px 0;
+            font-size: 15px;
+            outline: none;
+            width: 180px;
+            color: #1a1a1a;
+        }
+        .search-box input::placeholder {
+            color: #aaa;
+        }
+        .search-box .clear-btn {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+        }
+        .search-box .clear-btn.visible {
+            display: block;
+        }
+
+        .sticky-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            padding: 10px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid #e9edf4;
+            background: #fafcff;
+        }
+        .sticky-bar .info {
+            font-size: 15px;
+            color: #3d4f6b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .sticky-bar .info strong {
+            color: #0b1e33;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #f1f4fa;
+            color: #1f3a5f;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .btn:hover {
+            background: #e2e8f2;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn-week {
+            background: #e67e22;
+            color: white;
+        }
+        .btn-week:hover {
+            background: #d35400;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid #cbd5e1;
+        }
+        .btn-outline:hover {
+            background: #f1f5f9;
+        }
+        .btn-reset-history {
+            background: #8e44ad;
+            color: white;
+            font-size: 13px;
+            padding: 6px 14px;
+        }
+        .btn-reset-history:hover {
+            background: #732d91;
+        }
+        .btn-comfort {
+            background: #e67e22;
+            color: white;
+        }
+        .btn-comfort:hover {
+            background: #d35400;
+        }
+
+        .quick-select-area {
+            background: white;
+            padding: 10px 16px;
+            border-bottom: 1px solid #e9edf4;
+        }
+        .quick-select-area .qs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .quick-select-area .qs-header .qs-actions button {
+            margin-left: 6px;
+            padding: 2px 12px;
+            font-size: 12px;
+            border-radius: 30px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+        }
+        .quick-select-area .qs-header .qs-actions button:hover {
+            background: #f0f0f0;
+        }
+
+        .qs-group {
+            margin-bottom: 6px;
+        }
+        .qs-group:last-child {
+            margin-bottom: 0;
+        }
+        .qs-group-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #5e6f8d;
+            background: #f0f3f8;
+            padding: 2px 10px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 2px;
+        }
+        .qs-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px 10px;
+            padding: 2px 0 4px 0;
+        }
+        .qs-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+        .qs-item input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: #2563eb;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .qs-item .qs-name {
+            font-size: 13px;
+        }
+        .qs-item .qs-tag {
+            font-size: 10px;
+            color: #e67e22;
+            background: #fef9e7;
+            padding: 0 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        .week-menu-area {
+            background: #f8fafe;
+            border-radius: 12px;
+            border: 2px solid #dbe7f6;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+        .week-menu-area.visible {
+            display: block;
+        }
+        .week-menu-area .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .week-menu-area .menu-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0b1e33;
+        }
+        .week-menu-area .menu-header .menu-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .week-menu-area .selected-dishes-summary {
+            background: #eef4ff;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid #2563eb;
+        }
+        .week-menu-area .selected-dishes-summary .sd-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 6px;
+            color: #1f3a5f;
+        }
+        .week-menu-area .selected-dishes-summary .sd-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+        }
+        .week-menu-area .selected-dishes-summary .sd-list .sd-item {
+            font-size: 14px;
+            background: white;
+            padding: 2px 14px;
+            border-radius: 20px;
+            border: 1px solid #dbe7f6;
+        }
+
+        .week-menu-area .shopping-summary {
+            background: #f1f5fe;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .week-menu-area .shopping-summary h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f3a5f;
+            margin: 0 0 8px 0;
+        }
+        .week-menu-area .shopping-summary .category-group {
+            margin-bottom: 10px;
+        }
+        .week-menu-area .shopping-summary .category-group:last-child {
+            margin-bottom: 0;
+        }
+        .week-menu-area .shopping-summary .category-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1f3a5f;
+            padding: 4px 0;
+            border-bottom: 1px dashed #dbe7f6;
+            margin-bottom: 4px;
+        }
+        .week-menu-area .shopping-summary .list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+            padding: 4px 0;
+        }
+        .week-menu-area .shopping-summary .list span {
+            background: white;
+            padding: 3px 16px;
+            border-radius: 30px;
+            border: 1px solid #dbe7f6;
+            font-size: 14px;
+        }
+
+        .week-menu-area .reuse-tips {
+            background: #fef9e7;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid #e67e22;
+        }
+        .week-menu-area .reuse-tips h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #b9770e;
+            margin: 0 0 6px 0;
+        }
+        .week-menu-area .reuse-tips .reuse-item {
+            font-size: 14px;
+            padding: 4px 0;
+            border-bottom: 1px dashed #f0e4d0;
+        }
+        .week-menu-area .reuse-tips .reuse-item:last-child {
+            border-bottom: none;
+        }
+        .week-menu-area .reuse-tips .reuse-item .reuse-name {
+            font-weight: 600;
+            color: #1f3a5f;
+        }
+        .week-menu-area .reuse-tips .reuse-item .reuse-dishes {
+            color: #5e6f8d;
+            font-size: 13px;
+        }
+
+        .week-menu-area .recipe-card {
+            border: 1px solid #e9edf4;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            background: white;
+        }
+        .week-menu-area .recipe-card:last-child {
+            margin-bottom: 0;
+        }
+        .week-menu-area .recipe-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+        .week-menu-area .recipe-card .source {
+            font-size: 12px;
+            color: #7a8aa3;
+        }
+        .week-menu-area .recipe-card .time-tag {
+            display: inline-block;
+            background: #e8edf6;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1f3a5f;
+            margin-bottom: 8px;
+        }
+        .week-menu-area .recipe-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 10px 0 4px 0;
+        }
+        .week-menu-area .recipe-card ul,
+        .week-menu-area .recipe-card ol {
+            padding-left: 22px;
+        }
+        .week-menu-area .recipe-card .key-point {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #fef9e7;
+            border-radius: 8px;
+            border-left: 4px solid #e67e22;
+            font-size: 14px;
+        }
+        .week-menu-area .recipe-card .key-point::before {
+            content: "💡 ";
+        }
+
+        .main-content {
+            background: white;
+            padding: 16px 24px 24px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .dish-group {
+            border-bottom: 1px solid #edf2f7;
+            padding: 4px 0;
+        }
+        .dish-group:last-child {
+            border-bottom: none;
+        }
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 4px;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 6px;
+        }
+        .group-header:hover {
+            background: #f8fafc;
+        }
+        .group-header .arrow {
+            font-size: 15px;
+            transition: transform 0.25s;
+            display: inline-block;
+            color: #5e6f8d;
+            width: 20px;
+            text-align: center;
+        }
+        .group-header .arrow.collapsed {
+            transform: rotate(-90deg);
+        }
+        .group-header .group-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0b1e33;
+        }
+        .group-header .dish-count {
+            font-size: 14px;
+            color: #8896ab;
+            margin-left: auto;
+        }
+        .group-body {
+            padding: 4px 0 12px 0;
+            display: block;
+        }
+        .group-body.collapsed {
+            display: none;
+        }
+
+        .dish-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+        }
+        .dish-card {
+            background: #fafcff;
+            border: 1px solid #e9edf4;
+            border-radius: 10px;
+            padding: 12px 16px;
+            transition: box-shadow 0.15s, border-color 0.15s;
+        }
+        .dish-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        .dish-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .dish-head input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563eb;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .dish-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #0b1e33;
+            cursor: pointer;
+            flex: 1;
+            padding: 4px 0;
+            border-bottom: 1px dashed transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .dish-name:hover {
+            border-bottom-color: #a0b8d4;
+        }
+        .dish-name .week-badge {
+            font-size: 12px;
+            background: #e8edf6;
+            color: #5e6f8d;
+            padding: 0 10px;
+            border-radius: 12px;
+            font-weight: 400;
+            line-height: 1.8;
+        }
+
+        .dish-body {
+            margin-top: 10px;
+            padding-top: 12px;
+            border-top: 1px solid #eef2f8;
+            display: none;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1e2a41;
+        }
+        .dish-body.open {
+            display: block;
+        }
+        .dish-body .source {
+            font-size: 12px;
+            color: #7a8aa3;
+            margin-bottom: 4px;
+        }
+        .dish-body .time-tag {
+            display: inline-block;
+            background: #e8edf6;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1f3a5f;
+            margin-bottom: 10px;
+        }
+        .dish-body h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f3a5f;
+            margin: 12px 0 4px 0;
+        }
+        .dish-body ul,
+        .dish-body ol {
+            padding-left: 22px;
+            margin: 4px 0 6px 0;
+        }
+        .dish-body li {
+            margin-bottom: 3px;
+            font-size: 14px;
+        }
+        .dish-body ol li {
+            margin-bottom: 4px;
+        }
+        .dish-body .key-point {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #fef9e7;
+            border-radius: 8px;
+            border-left: 4px solid #e67e22;
+            font-size: 14px;
+            color: #5e4a1a;
+        }
+        .dish-body .key-point::before {
+            content: "💡 ";
+        }
+
+        .comfort-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            padding: 20px;
+            backdrop-filter: blur(2px);
+        }
+        .comfort-modal.active {
+            display: flex;
+        }
+        .comfort-modal .modal-box {
+            background: white;
+            max-width: 520px;
+            width: 100%;
+            max-height: 90vh;
+            border-radius: 20px;
+            padding: 28px 24px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .comfort-modal .modal-box .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .comfort-modal .modal-box .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .comfort-modal .modal-box .modal-header .close-btn {
+            background: none;
+            border: none;
+            font-size: 26px;
+            color: #6b7b93;
+            cursor: pointer;
+        }
+        .comfort-modal .modal-box .comfort-dish-name {
+            font-size: 26px;
+            font-weight: 600;
+            color: #0b1e33;
+            padding: 12px 0 4px;
+            text-align: center;
+        }
+        .comfort-modal .modal-box .comfort-message {
+            font-size: 16px;
+            font-weight: 500;
+            color: #5e4a1a;
+            text-align: center;
+            padding: 14px 20px;
+            background: #fef9e7;
+            border-radius: 12px;
+            border-left: 4px solid #e67e22;
+            margin-bottom: 16px;
+            display: none;
+            font-style: normal;
+            line-height: 1.8;
+        }
+        .comfort-modal .modal-box .comfort-message .emoji {
+            font-size: 20px;
+            margin-right: 6px;
+        }
+        .comfort-modal .modal-box .comfort-message.show {
+            display: block;
+        }
+        .comfort-modal .modal-box .comfort-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .comfort-modal .modal-box .comfort-recipe {
+            border-top: 1px solid #e9edf4;
+            padding-top: 16px;
+            overflow-y: auto;
+            max-height: 300px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .comfort-modal .modal-box .comfort-recipe h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f3a5f;
+            margin: 10px 0 4px 0;
+        }
+        .comfort-modal .modal-box .comfort-recipe ul,
+        .comfort-modal .modal-box .comfort-recipe ol {
+            padding-left: 22px;
+            margin: 4px 0 6px 0;
+        }
+        .comfort-modal .modal-box .comfort-recipe li {
+            margin-bottom: 2px;
+        }
+        .comfort-modal .modal-box .comfort-recipe .key-point {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #fef9e7;
+            border-radius: 8px;
+            border-left: 4px solid #e67e22;
+            font-size: 14px;
+        }
+        .comfort-modal .modal-box .comfort-recipe .key-point::before {
+            content: "💡 ";
+        }
+        .comfort-modal .modal-box .comfort-export {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding-top: 12px;
+            border-top: 1px solid #e9edf4;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .dish-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 640px) {
+            body {
+                padding: 10px;
+            }
+            .dish-grid {
+                grid-template-columns: 1fr;
+            }
+            .sticky-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .action-buttons {
+                justify-content: center;
+            }
+            .app-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .search-box input {
+                width: 100%;
+            }
+            .app-header .week-info {
+                text-align: center;
+            }
+            .week-menu-area {
+                padding: 14px 16px;
+            }
+            .comfort-modal .modal-box {
+                padding: 20px 16px;
+            }
+            .quick-select-area {
+                padding: 8px 16px;
+            }
+            .qs-grid {
+                gap: 2px 8px;
+            }
+            .qs-item {
+                font-size: 13px;
+            }
+        }
+        @media (max-width: 480px) {
+            .dish-grid {
+                grid-template-columns: 1fr;
+            }
+            .action-buttons .btn {
+                font-size: 13px;
+                padding: 6px 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <header class="app-header">
+            <h1>一周食单 <span class="sub">· 好好吃饭</span></h1>
+            <div class="week-info" id="weekInfo">📅 第 0 周 · 已出 0/0 道</div>
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="searchInput" placeholder="搜主料或菜名">
+                <button class="clear-btn" id="clearSearch">✕</button>
+            </div>
+        </header>
+
+        <div class="sticky-bar">
+            <div class="info">
+                <span>已选 <strong id="selectedCount">0</strong> 道菜</span>
+                <button class="btn btn-comfort" style="padding:4px 16px;font-size:13px;" id="comfortBtn">😌 不想做饭</button>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-week" id="generateWeekBtn">📅 生成本周食单（7道）</button>
+                <button class="btn btn-primary" id="generateListBtn">📋 生成采购清单 + 做法</button>
+                <button class="btn btn-outline" id="clearAllBtn">清除勾选</button>
+                <button class="btn btn-reset-history" id="resetHistoryBtn">🔄 重置轮换</button>
+            </div>
+        </div>
+
+        <!-- 本周食单结果区 -->
+        <div class="week-menu-area" id="weekMenuArea">
+            <div class="menu-header">
+                <h2>📋 本周食单</h2>
+                <div class="menu-actions">
+                    <button class="btn btn-outline" id="exportHtmlBtn2">📄 HTML</button>
+                    <button class="btn btn-outline" id="exportPngBtn2">🖼️ PNG</button>
+                    <button class="btn" id="closeWeekMenu">关闭</button>
+                </div>
+            </div>
+            <div id="weekMenuContent"></div>
+        </div>
+
+        <!-- 快速选菜 -->
+        <div class="quick-select-area" id="quickSelectArea">
+            <div class="qs-header">
+                <span>📋 快速选菜</span>
+                <div class="qs-actions">
+                    <button id="qsSelectAll">全选</button>
+                    <button id="qsClearAll">清空</button>
+                </div>
+            </div>
+            <div id="qsGroupsContainer"></div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main-content" id="mainContent"></div>
+
+        <!-- 不想做饭弹窗 -->
+        <div class="comfort-modal" id="comfortModal">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h2>😌 不想做饭</h2>
+                    <button class="close-btn" id="comfortClose">✕</button>
+                </div>
+                <div class="comfort-dish-name" id="comfortDishName">🍜 加载中...</div>
+                <div class="comfort-message" id="comfortMessage"></div>
+                <div class="comfort-actions">
+                    <button class="btn btn-outline" id="comfortRefresh">换一个</button>
+                    <button class="btn btn-primary" id="comfortConfirm">就吃这个</button>
+                </div>
+                <div class="comfort-recipe" id="comfortRecipe"></div>
+                <div class="comfort-export">
+                    <button class="btn btn-outline" id="comfortExportHtml">📄 HTML</button>
+                    <button class="btn btn-outline" id="comfortExportPng">🖼️ PNG</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ================================================================
+        // ⚠️ 请将你的 dishData 粘贴到此处，替换空数组
+        // ================================================================
+var dishData = [
+  // ============================================================
+  // 一、猪肉（肉丝）— 30道
+  // ============================================================
+  {
+    cat: "肉丝",
+    items: [
+      {n:"青椒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"青椒",amount:"2个（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","青椒 2个（约150g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["里脊肉逆纹切丝，加生抽、料酒、淀粉、白胡椒粉抓匀至发粘，最后加1小勺油封住，腌10分钟。","青椒去籽切丝，大蒜切片，生姜切丝。","热锅凉油，油温六成热时下肉丝，快速划散，炒至肉丝变色发白立即盛出（约40秒）。","锅中留底油，爆香姜蒜，下青椒丝大火翻炒约1分钟至断生。","倒入肉丝，加蚝油、盐，大火快速翻炒10秒即可出锅。"],k:"肉丝不要炒太久，变色即出；青椒要大火快炒保持脆嫩。"},
+      {n:"尖椒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"尖椒",amount:"2个（约120g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","尖椒 2个（约120g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、老抽 半勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","尖椒去蒂去籽切丝（怕辣可去白筋）。","热锅下油，滑炒肉丝至变色盛出。","爆香姜蒜，下尖椒丝大火快炒约1分钟，加少许盐。","倒入肉丝，加老抽和剩余盐，大火翻炒10秒即可。"],k:"尖椒比青椒辣，去白筋可减辣；老抽上色不要多放。"},
+      {n:"蒜苔肉丝",m:[{name:"猪肉",amount:"150g"},{name:"蒜苔",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","蒜苔 200g"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","蒜苔洗净切段（约4cm长），较粗的可对半剖开。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下蒜苔段大火翻炒约2分钟至断生（表面起皱）。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"蒜苔炒到表面起皱才香，但不炒太久否则发蔫。"},
+      {n:"芹菜肉丝",m:[{name:"猪肉",amount:"150g"},{name:"芹菜",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","芹菜 200g"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","芹菜去叶切段（约4cm长）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下芹菜段大火翻炒约1分钟至断生。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"芹菜要大火快炒，炒久了会出水变软，失去脆感。"},
+      {n:"洋葱肉丝",m:[{name:"猪肉",amount:"150g"},{name:"洋葱",amount:"1个（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","洋葱 1个（约150g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","洋葱切丝（顺着纹理切）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下洋葱丝中火炒至透明变软（约3分钟）。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"洋葱要炒到透明出甜味再下肉丝，否则洋葱生辣。"},
+      {n:"韭菜肉丝",m:[{name:"猪肉",amount:"150g"},{name:"韭菜",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","韭菜 200g"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","韭菜洗净切段（约4cm长），根和叶分开放。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下韭菜根先炒20秒，再下韭菜叶大火快速翻炒约30秒。","倒入肉丝，加盐，快速炒匀即可。"],k:"韭菜根比叶子难熟，要分开下锅；韭菜不能久炒，出水就蔫了。"},
+      {n:"蒜苗肉丝",m:[{name:"猪肉",amount:"150g"},{name:"蒜苗",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","蒜苗 200g"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、豆瓣酱 1小勺（可选）"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","蒜苗洗净切段（约4cm长），蒜白用刀拍一下，蒜白和蒜叶分开。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下蒜白先炒1分钟，再下蒜叶翻炒约30秒。","倒入肉丝，加盐、豆瓣酱（可选），快速炒匀即可。"],k:"蒜白要拍一下再炒，更易入味；蒜叶不能久炒。"},
+      {n:"大葱炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"大葱",amount:"1根（约100g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","大葱 1根（约100g）"],f:["生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、老抽 半勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","大葱斜切成段（滚刀块）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜片，下大葱段大火爆炒至出香味（约1分钟）。","倒入肉丝，加老抽、盐，快速炒匀即可。"],k:"大葱要用葱白部分；大火爆炒出葱香。"},
+      {n:"豆干炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"豆干",amount:"3块（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","白豆干 3块（约150g）"],f:["大蒜 2瓣（切片）","青蒜 1根（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、生抽 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","豆干切条（约0.5cm宽），青蒜切段。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下豆干条中火煸炒至表面微黄（约2分钟）。","倒入肉丝，加生抽、盐、青蒜段，快速炒匀即可。"],k:"豆干要煸炒至表面微黄才香；青蒜最后放，断生即可。"},
+      {n:"豆角肉丝",m:[{name:"猪肉",amount:"150g"},{name:"豆角",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","豆角 200g"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","豆角洗净切段（约4cm长），焯水2分钟捞出沥干。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下豆角段中火翻炒约3分钟至表面起皱。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"豆角必须焯水煮熟，否则有毒素；炒到表面起皱才香。"},
+      {n:"胡萝卜炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"胡萝卜",amount:"1根（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","胡萝卜 1根（约150g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","胡萝卜去皮切丝（用刨丝器）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下胡萝卜丝中火翻炒约2分钟至变软。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"胡萝卜要炒软出红油才香；胡萝卜丝要细且均匀。"},
+      {n:"包菜炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"包菜",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","包菜（圆白菜）200g"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","包菜洗净切丝（约0.5cm宽），去掉硬梗。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下包菜丝大火翻炒约2分钟至断生。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"包菜要大火快炒，炒久了出水变软，失去脆甜。"},
+      {n:"木耳炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"木耳",amount:"10g（泡发后约100g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","干木耳 10g（泡发后约100g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","干木耳提前用温水泡发（约30分钟），洗净撕小朵，焯水1分钟捞出。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下木耳翻炒约1分钟。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"木耳要用温水泡发；焯水去土腥味。"},
+      {n:"香菇肉丝",m:[{name:"猪肉",amount:"150g"},{name:"香菇",amount:"8朵（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","鲜香菇 8朵（约150g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","鲜香菇去蒂洗净切片（约0.3cm厚）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下香菇片大火翻炒至变软出汁（约2分钟）。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"香菇不要焯水，直接干煸出香味；香菇出的汁水是鲜味来源，不要倒掉。"},
+      {n:"金针菇炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"金针菇",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","金针菇 200g"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","金针菇切去根部，洗净掰散，焯水30秒捞出沥干。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下金针菇大火翻炒约1分钟。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"金针菇焯水时间要短，长了就烂了；金针菇水分多，大火快炒收汁。"},
+      {n:"黄花菜炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"黄花菜",amount:"30g（泡发后约120g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","干黄花菜 30g（泡发后约120g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","干黄花菜提前用温水泡发（约30分钟），洗净挤干，切段（约4cm）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下黄花菜翻炒约2分钟。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"黄花菜要挤干水分，否则炒出来水汪汪；泡发时间要够，否则硬。"},
+      {n:"鱼香肉丝",m:[{name:"猪肉",amount:"150g"},{name:"木耳",amount:"50g"},{name:"胡萝卜",amount:"半根（约80g）"},{name:"青笋",amount:"半根（约80g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","木耳（泡发）50g","胡萝卜 半根（约80g）","青笋 半根（约80g）"],f:["大蒜 3瓣（切末）","生姜 3片（切末）","小葱 1根（切葱花）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","碗汁：生抽 2勺、香醋 2勺、白糖 1勺、淀粉 1小勺、清水 半碗","炒制：食用油 3勺、豆瓣酱 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","木耳泡发切丝，胡萝卜、青笋去皮切丝（三种丝粗细一致）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，下豆瓣酱小火炒出红油，爆香姜蒜末。","下胡萝卜丝、木耳丝大火翻炒1分钟，再下青笋丝翻炒30秒。","倒入肉丝，沿锅边淋入碗汁，大火快速翻炒收汁，撒葱花即可。"],k:"碗汁要提前调好；酸甜比例1:1；豆瓣酱炒出红油是关键。"},
+      {n:"京酱肉丝",m:[{name:"猪肉",amount:"200g"},{name:"大葱",amount:"1根"},{name:"豆皮",amount:"2张"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 200g","大葱 1根（切丝）","豆皮 2张"],f:["大蒜 2瓣（切末）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、蛋清 半个","酱汁：甜面酱 2勺、白糖 1小勺、生抽 1勺、清水 半碗","炒制：食用油 3勺"],o:["肉切丝（略粗），加生抽、料酒、淀粉、白胡椒粉、蛋清抓匀腌10分钟。","大葱切细丝铺盘底，豆皮切方块码好。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜末，下甜面酱小火炒香，加白糖、生抽、清水煮开。","倒入肉丝，大火翻炒至酱汁均匀裹上肉丝，盛入铺好葱丝的盘中即可。"],k:"甜面酱要小火炒出香味；肉丝和酱汁要裹均匀。"},
+      {n:"泡椒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"泡椒",amount:"5-6个"},{name:"仔姜",amount:"1小块（约50g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","泡椒 5-6个","仔姜 1小块（约50g）"],f:["大蒜 2瓣（切片）","生姜 3片","青蒜 1根（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、泡椒水 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","泡椒切段，仔姜切丝。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香姜蒜，下泡椒段、仔姜丝大火翻炒出香味（约1分钟）。","倒入肉丝，加盐、泡椒水，快速炒匀，撒青蒜段即可。"],k:"泡椒水是灵魂，酸辣味主要来自它；仔姜丝要切细。"},
+      {n:"空心菜炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"空心菜",amount:"250g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","空心菜 250g"],f:["大蒜 3瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","空心菜洗净摘段（约5cm），梗和叶分开放。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下空心菜梗先炒30秒，再下叶子大火翻炒约1分钟至断生。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"空心菜梗和叶子分开炒，梗多炒一会儿，叶少炒一会儿。"},
+      {n:"蚝油生菜炒肉片",m:[{name:"猪肉",amount:"150g"},{name:"生菜",amount:"1颗（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","生菜 1颗（约200g）"],f:["大蒜 3瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、蚝油 2勺、盐 1小勺"],o:["肉切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","生菜洗净撕片，沥干水分。","热锅下油，滑炒肉片至变色盛出。","锅中留底油，爆香蒜片，下生菜大火快速翻炒约30秒至断生。","倒入肉片，加蚝油、盐，快速炒匀即可。"],k:"生菜水分大，必须大火快炒；蚝油是主味。"},
+      {n:"蒜蓉油麦菜炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"油麦菜",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","油麦菜 200g"],f:["大蒜 4瓣（切末）","干辣椒 2个（可选）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","油麦菜洗净切段（约5cm），梗和叶分开放。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，下蒜末、干辣椒爆香，下油麦菜梗先炒30秒，再下叶子大火翻炒约1分钟。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"蒜末要多，突出蒜香；油麦菜梗和叶分开下锅。"},
+      {n:"酸辣土豆丝炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"土豆",amount:"1个（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","土豆 1个（约200g）"],f:["大蒜 2瓣（切片）","干辣椒 2个（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、香醋 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","土豆去皮切细丝，用清水冲洗2遍去淀粉，沥干。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片、干辣椒，下土豆丝大火翻炒约2分钟至断生。","倒入肉丝，加盐，沿锅边淋入香醋，大火翻炒10秒即可。"],k:"土豆丝要冲去淀粉才脆；醋要沿锅边淋入激发出醋香。"},
+      {n:"西葫芦炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"西葫芦",amount:"1根（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","西葫芦 1根（约200g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","西葫芦洗净切片（约0.4cm厚）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下西葫芦片大火翻炒约2分钟至断生。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"西葫芦不用去皮，炒软即可，不用炒太久否则出水变烂。"},
+      {n:"丝瓜炒肉片",m:[{name:"猪肉",amount:"150g"},{name:"丝瓜",amount:"1根（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","丝瓜 1根（约200g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","丝瓜去皮切滚刀块（约1cm厚）。","热锅下油，滑炒肉片至变色盛出。","锅中留底油，爆香蒜片，下丝瓜块中火翻炒约2分钟至变软出汁。","倒入肉片，加蚝油、盐，快速炒匀即可。"],k:"丝瓜切块不要太小，炒软后会缩水；丝瓜出的汁不用收干。"},
+      {n:"杏鲍菇炒肉丝",m:[{name:"猪肉",amount:"150g"},{name:"杏鲍菇",amount:"2根（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","杏鲍菇 2根（约200g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","杏鲍菇洗净切丝（或手撕成丝）。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，下杏鲍菇丝中火煸炒至表面微黄变软出汁（约3分钟）。","倒入肉丝，加蚝油、盐，快速炒匀即可。"],k:"杏鲍菇要干煸出水分再炒，否则出水多；手撕比刀切更易入味。"},
+      {n:"辣炒空心菜梗炒肉",m:[{name:"猪肉",amount:"150g"},{name:"空心菜梗",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","空心菜梗 200g（去叶留梗）"],f:["大蒜 3瓣（切片）","干辣椒 5个（切段）","豆豉 1小勺（可选）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、生抽 1勺"],o:["肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","空心菜梗洗净切段（约3cm长），用刀拍一下。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片、干辣椒、豆豉，下空心菜梗大火翻炒约2分钟至表面起皱。","倒入肉丝，加生抽、盐，快速炒匀即可。"],k:"空心菜梗要拍一下再炒；豆豉是江西风味的点睛之笔。"},
+      {n:"西瓜皮炒肉片",m:[{name:"猪肉",amount:"150g"},{name:"西瓜皮",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","西瓜皮 200g（去外皮和红瓤）"],f:["大蒜 3瓣（切片）","干辣椒 2个（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","西瓜皮削去外皮，刮去红瓤，切成薄片（约0.3cm厚）。","热锅下油，滑炒肉片至变色盛出。","锅中留底油，爆香蒜片、干辣椒，下西瓜皮片大火翻炒约2分钟至微微透明。","倒入肉片，加蚝油、盐，快速炒匀即可。"],k:"西瓜皮要切薄，大火快炒保持脆感；西瓜皮本身无味，调味要稍重。"},
+      {n:"西兰花菜根炒肉",m:[{name:"猪肉",amount:"150g"},{name:"西兰花菜根",amount:"1个（约100g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","西兰花菜根 1个（约100g）"],f:["大蒜 2瓣（切片）","干辣椒 2个（可选）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","西兰花菜根削去外皮，切薄片（约0.3cm厚）。","热锅下油，滑炒肉片至变色盛出。","锅中留底油，爆香蒜片、干辣椒，下菜根片大火翻炒约2分钟至断生。","倒入肉片，加蚝油、盐，快速炒匀即可。"],k:"菜根要削去老皮，否则嚼不动；菜根片要切薄，大火快炒保持脆嫩。"},
+      {n:"菜根炒肉",m:[{name:"猪肉",amount:"150g"},{name:"白菜根（或萝卜根、芹菜根等）",amount:"150g"}],s:"参考家常菜谱",t:"20分钟",z:["猪里脊肉 150g","白菜根（或萝卜根、芹菜根等）150g"],f:["大蒜 2瓣（切片）","干辣椒 2个（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","菜根洗净削去老皮，切薄片或条。","热锅下油，滑炒肉片至变色盛出。","锅中留底油，爆香蒜片、干辣椒，下菜根大火翻炒约2分钟至断生。","倒入肉片，加蚝油、盐，快速炒匀即可。"],k:"菜根要削皮，否则老韧；不同菜根口感不同，但做法一致。"}
+    ]
+  },
+  // ============================================================
+  // 二、猪肉（肉馅/五花肉）— 15道
+  // ============================================================
+  {
+    cat: "肉馅",
+    items: [
+      {n:"肉末茄子",m:[{name:"猪肉",amount:"100g（肉馅）"},{name:"茄子",amount:"1根（约200g）"}],s:"参考家常菜谱",t:"25分钟",z:["猪肉馅 100g","长茄子 1根（约200g）"],f:["大蒜 3瓣（切末）","生姜 2片（切末）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺、白胡椒粉 少许","碗汁：生抽 2勺、蚝油 1勺、老抽 半勺、白糖 1小勺、淀粉 1小勺、清水 半碗","其他：食用油 3勺（煎茄子）、盐 适量"],o:["肉馅加生抽、料酒、白胡椒粉抓匀腌10分钟。","茄子切滚刀块，撒少许盐腌制10分钟，挤干水分。","锅中多放油，下茄子块煎至表面微黄变软，盛出。","锅中留底油，爆香姜蒜末，下肉馅炒散至变色出油。","倒入茄子，淋入碗汁，大火快速翻炒收汁，撒葱花出锅。"],k:"茄子先腌后煎不吸油；肉馅要炒散不能结块。"},
+      {n:"肉末豆腐",m:[{name:"猪肉",amount:"80g（肉馅）"},{name:"豆腐",amount:"1盒（约300g）"}],s:"参考家常菜谱",t:"15分钟",z:["猪肉馅 80g","嫩豆腐 1盒（约300g）"],f:["大蒜 2瓣（切末）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、老抽 半勺、白糖 1小勺、淀粉 1小勺、清水 半碗","食用油 2勺"],o:["肉馅加生抽、料酒腌5分钟。","豆腐切小块（约2cm见方），开水焯烫1分钟捞出。","热锅下油，爆香蒜末，下肉馅炒散至变色。","倒入豆腐块，轻轻晃动锅（不要翻炒）。","淋入碗汁，小火煮2分钟，轻轻推匀，撒葱花即可。"],k:"豆腐焯水去豆腥且不易碎；全程不要翻炒，用推的方式。"},
+      {n:"肉末土豆丁",m:[{name:"猪肉",amount:"100g（肉馅）"},{name:"土豆",amount:"1个（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["猪肉馅 100g","土豆 1个（约200g）"],f:["大蒜 2瓣（切末）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、老抽 半勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["肉馅加生抽、料酒腌5分钟。","土豆去皮切丁（约1cm见方），冲洗去淀粉。","热锅下油，下土豆丁中火煎至表面金黄（约3-4分钟），盛出。","锅中留底油，爆香蒜末，下肉馅炒散至变色。","倒入土豆丁，淋入碗汁，中火煮3分钟至软糯，大火收汁撒葱花。"],k:"土豆丁要煎到表面金黄再烧，外焦里糯口感好。"},
+      {n:"肉末豆角",m:[{name:"猪肉",amount:"100g（肉馅）"},{name:"豆角",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["猪肉馅 100g","豆角 200g"],f:["大蒜 3瓣（切末）","干辣椒 2个（切段）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["肉馅加生抽、料酒腌5分钟。","豆角洗净切丁（约0.5cm小段）。","热锅下油，下豆角丁中火煸炒至表皮起皱变软（约5分钟），盛出。","锅中留底油，爆香蒜末、干辣椒，下肉馅炒散至变色。","倒入豆角，淋入碗汁，中火煮2分钟入味，大火收汁即可。"],k:"豆角必须炒熟，不熟有毒；豆角要煸炒到起皱才香。"},
+      {n:"肉末冬瓜",m:[{name:"猪肉",amount:"80g（肉馅）"},{name:"冬瓜",amount:"300g"}],s:"参考家常菜谱",t:"15分钟",z:["猪肉馅 80g","冬瓜 300g"],f:["大蒜 2瓣（切末）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["肉馅加生抽、料酒腌5分钟。","冬瓜去皮去瓤切厚片（约1cm厚）。","热锅下油，爆香蒜末，下肉馅炒散至变色。","下冬瓜片翻炒均匀，淋入碗汁，加盖中火煮5分钟。","开盖加盐调味，大火收汁撒葱花。"],k:"冬瓜煮到透明才熟透；冬瓜出水多，碗汁不用太多水。"},
+      {n:"肉末苦瓜",m:[{name:"猪肉",amount:"80g（肉馅）"},{name:"苦瓜",amount:"1根（约200g）"}],s:"参考家常菜谱",t:"15分钟",z:["猪肉馅 80g","苦瓜 1根（约200g）"],f:["大蒜 2瓣（切末）","豆豉 1小勺"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["肉馅加生抽、料酒腌5分钟。","苦瓜对半切开去瓤，切薄片（约0.3cm厚），撒盐腌制10分钟，挤去苦水。","热锅下油，爆香蒜末、豆豉，下肉馅炒散至变色。","下苦瓜片大火翻炒至断生（约2分钟）。","淋入碗汁，快速翻炒收汁即可。"],k:"苦瓜去苦味的关键是腌+挤水；豆豉是去苦增香的关键。"},
+      {n:"肉末酸豆角",m:[{name:"猪肉",amount:"100g（肉馅）"},{name:"酸豆角",amount:"150g"}],s:"参考家常菜谱",t:"15分钟",z:["猪肉馅 100g","酸豆角 150g"],f:["大蒜 3瓣（切末）","干辣椒 2个（切段）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","炒制：食用油 2勺、蚝油 1勺"],o:["肉馅加生抽、料酒腌5分钟。","酸豆角切丁（约0.5cm），清水浸泡10分钟去咸，沥干。","热锅下油，爆香蒜末、干辣椒，下肉馅炒散至变色。","下酸豆角丁大火翻炒约2分钟。","加蚝油调味，炒匀撒葱花即可。"],k:"酸豆角泡水去咸，否则太咸；酸豆角本身有咸味，盐少放。"},
+      {n:"肉末蒸蛋",m:[{name:"猪肉",amount:"80g（肉馅）"},{name:"鸡蛋",amount:"2个"}],s:"参考家常菜谱",t:"20分钟",z:["猪肉馅 80g","鸡蛋 2个"],f:["小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","蛋液：温水 150ml、盐 1小勺","蒸制：食用油 1勺、生抽 1勺（淋面用）"],o:["肉馅加生抽、料酒抓匀，铺在蒸碗底部。","鸡蛋打散，加温水、盐搅匀，过滤后倒入蒸碗中。","碗上盖保鲜膜，扎几个小孔，上锅大火蒸10分钟。","取出淋上生抽和食用油，撒葱花即可。"],k:"蛋水比例1:1.5；必须过滤；必须盖保鲜膜。"},
+      {n:"肉末粉丝（蚂蚁上树）",m:[{name:"猪肉",amount:"100g（肉馅）"},{name:"粉丝",amount:"50g"}],s:"参考家常菜谱",t:"20分钟",z:["猪肉馅 100g","干粉丝 50g"],f:["大蒜 3瓣（切末）","生姜 2片（切末）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、老抽 半勺、豆瓣酱 1小勺、清水 半碗","食用油 2勺"],o:["肉馅加生抽、料酒腌5分钟。","粉丝用温水泡软（约15分钟），剪短，沥干。","热锅下油，爆香姜蒜末，下肉馅炒散至变色，加豆瓣酱炒出红油。","倒入粉丝，淋入碗汁，中火翻炒至粉丝吸饱汤汁（约2分钟）。","大火收汁，撒葱花即可。"],k:"粉丝泡软后要沥干，否则炒出来水汪汪；粉丝吸汁后要快速翻炒。"},
+      {n:"肉末香菇",m:[{name:"猪肉",amount:"80g（肉馅）"},{name:"香菇",amount:"10朵（约200g）"}],s:"参考家常菜谱",t:"15分钟",z:["猪肉馅 80g","鲜香菇 10朵（约200g）"],f:["大蒜 2瓣（切末）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["肉馅加生抽、料酒腌5分钟。","香菇去蒂洗净切厚片（约0.5cm厚）。","热锅下油，爆香蒜末，下肉馅炒散至变色。","下香菇片大火翻炒至变软出汁（约2分钟）。","淋入碗汁，中火煮2分钟，加盐调味，大火收汁撒葱花。"],k:"香菇出的汁水是鲜味来源，不要倒掉；香菇不要焯水直接煸炒。"},
+      {n:"肉末杏鲍菇",m:[{name:"猪肉",amount:"80g（肉馅）"},{name:"杏鲍菇",amount:"2根（约200g）"}],s:"参考家常菜谱",t:"15分钟",z:["猪肉馅 80g","杏鲍菇 2根（约200g）"],f:["大蒜 2瓣（切末）","小葱 1根（切葱花）"],l:["腌制肉馅：生抽 1勺、料酒 1勺","碗汁：生抽 2勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["肉馅加生抽、料酒腌5分钟。","杏鲍菇切丁（约1cm见方）。","热锅下油，爆香蒜末，下肉馅炒散至变色。","下杏鲍菇丁中火翻炒至表面微黄变软（约3分钟）。","淋入碗汁，中火煮2分钟，加盐调味，大火收汁撒葱花。"],k:"杏鲍菇要炒到表面微黄才香；杏鲍菇丁不要切太小，炒熟后会缩水。"},
+      {n:"狮子头（单人版）",m:[{name:"猪肉",amount:"150g（肉馅，肥瘦3:7）"},{name:"马蹄",amount:"2个"},{name:"小青菜",amount:"2颗"}],s:"参考家常菜谱",t:"25分钟",z:["猪肉馅 150g（肥瘦3:7）","马蹄 2个（或莲藕，切碎）","小青菜 2颗"],f:["生姜 2片（切末）","小葱 1根（切葱花）"],l:["肉馅调味：生抽 1勺、料酒 1勺、淀粉 1勺、盐 1小勺、白胡椒粉 少许、清水 2勺（分次打入）","炖煮：生抽 1勺、老抽 半勺、冰糖 1小块、清水 适量","食用油 2勺（煎丸子用）"],o:["肉馅加生抽、料酒、淀粉、盐、白胡椒粉，分次加清水朝一个方向搅打上劲。","加入马蹄碎、姜末、葱花拌匀，团成一个大丸子。","热锅下油，放入丸子中火煎至表面金黄（约3-4分钟）。","锅中加生抽、老抽、冰糖和没过丸子一半的清水，小火炖煮15分钟。","小青菜焯水铺碗底，将丸子和汤汁盛入即可。"],k:"肉馅要搅打上劲，否则丸子松散；煎丸子要轻翻保持完整。"},
+      {n:"干锅花菜炒五花肉",m:[{name:"五花肉",amount:"150g"},{name:"花菜",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["五花肉 150g","花菜 200g"],f:["大蒜 3瓣（切片）","干辣椒 3个（切段）","生姜 3片"],l:["五花肉焯水：料酒 1勺","炒制：食用油 2勺、豆瓣酱 1勺、生抽 1勺、蚝油 1勺、白糖 1小勺、盐 1小勺"],o:["五花肉切薄片（约0.3cm），冷水下锅加料酒焯水去腥，捞出沥干。","花菜掰小朵，开水焯烫1分钟，捞出沥干。","热锅下油，下五花肉片中火煸炒至表面微黄出油（约3分钟）。","爆香姜蒜、干辣椒，下豆瓣酱炒出红油。","下花菜大火翻炒2分钟，加生抽、蚝油、白糖、盐调味，炒匀即可。"],k:"五花肉要煸出油再下花菜；花菜焯水后要沥干。"},
+      {n:"干锅土豆片炒五花肉",m:[{name:"五花肉",amount:"150g"},{name:"土豆",amount:"1个（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["五花肉 150g","土豆 1个（约200g）"],f:["大蒜 3瓣（切片）","干辣椒 3个（切段）","生姜 3片"],l:["五花肉焯水：料酒 1勺","炒制：食用油 2勺、豆瓣酱 1勺、生抽 1勺、蚝油 1勺、白糖 1小勺、盐 1小勺"],o:["五花肉切薄片，冷水下锅加料酒焯水去腥，捞出沥干。","土豆去皮切厚片（约0.5cm），冲洗去淀粉，沥干。","热锅下油，下土豆片中火煎至两面金黄（约4-5分钟），盛出。","锅中留底油，下五花肉片煸炒至表面微黄出油。","爆香姜蒜、干辣椒，下豆瓣酱炒出红油，下土豆片翻炒2分钟。","加生抽、蚝油、白糖、盐调味，炒匀即可。"],k:"土豆片要煎到两面金黄再炒，外焦里糯；五花肉煸出油才香。"},
+      {n:"豆泡烧肉（江西做法）",m:[{name:"五花肉",amount:"150g"},{name:"油豆泡",amount:"150g"}],s:"参考家常菜谱",t:"20分钟",z:["五花肉 150g","油豆泡 150g"],f:["生姜 3片","大蒜 2瓣（切片）","小葱 1根（切段）"],l:["焯水：料酒 1勺","红烧：生抽 2勺、老抽 半勺、蚝油 1勺、冰糖 1小块、八角 1个、清水 半碗","食用油 2勺、盐 1小勺"],o:["五花肉切薄片，冷水下锅加料酒焯水去腥，捞出沥干。","油豆泡对半切开（便于入味）。","热锅下油，下五花肉片中火煸炒至表面微黄出油（约3分钟）。","爆香姜蒜、八角，下油豆泡翻炒1分钟。","淋入生抽、老抽、蚝油、冰糖和清水，大火煮开后转中火焖煮8-10分钟。","开盖加盐调味，大火收汁，撒葱段即可。"],k:"五花肉煸出油再下豆泡；豆泡吸汁后口感软糯，焖煮时间要够。"}
+    ]
+  },
+  // ============================================================
+  // 三、鸡肉（合并鸡胸+鸡腿）— 16道
+  // ============================================================
+  {
+    cat: "鸡肉",
+    items: [
+      {n:"青椒炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"青椒",amount:"2个（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g（鸡胸或鸡腿）","青椒 2个（约150g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切薄片（鸡胸逆纹切，鸡腿去骨切块），加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","青椒去籽切块，姜蒜切片。","热锅下油，油温六成热时下鸡肉滑炒至变色，立即盛出（鸡胸约40秒，鸡腿约1分钟）。","锅中留底油，爆香姜蒜，下青椒块大火翻炒至断生（约1分钟）。","倒入鸡肉，加蚝油、盐，大火快炒10秒即可。"],k:"鸡肉不能炒老，变色即出；鸡胸和鸡腿切法不同但腌制相同。"},
+      {n:"尖椒炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"尖椒",amount:"2个（约120g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","尖椒 2个（约120g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、老抽 半勺"],o:["鸡肉切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","尖椒去蒂去籽切块或丝。","热锅下油，滑炒鸡肉至变色盛出。","爆香姜蒜，下尖椒大火快炒约1分钟，加盐。","倒入鸡肉，加老抽和剩余盐，快速炒匀即可。"],k:"尖椒比青椒辣，怕辣可去白筋；老抽上色不要多放。"},
+      {n:"蒜苔炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"蒜苔",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","蒜苔 200g"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","蒜苔洗净切段（约4cm长），较粗的可对半剖开。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，爆香姜蒜，下蒜苔大火翻炒约2分钟至断生。","倒入鸡肉，加蚝油、盐，快速炒匀即可。"],k:"蒜苔炒到表面起皱才香；鸡肉变色即出不要炒老。"},
+      {n:"洋葱炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"洋葱",amount:"1个（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","洋葱 1个（约150g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","洋葱切丝。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，爆香蒜片，下洋葱丝中火炒至透明变软（约3分钟）。","倒入鸡肉，加蚝油、盐，快速炒匀即可。"],k:"洋葱要炒到透明出甜味再下鸡肉。"},
+      {n:"西葫芦炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"西葫芦",amount:"1根（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","西葫芦 1根（约200g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","西葫芦洗净切片（约0.4cm厚）。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，爆香蒜片，下西葫芦片大火翻炒约2分钟至断生。","倒入鸡肉，加蚝油、盐，快速炒匀即可。"],k:"西葫芦大火快炒，炒软即可，不要炒太久出水。"},
+      {n:"香菇炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"香菇",amount:"8朵（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","鲜香菇 8朵（约150g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","香菇去蒂洗净切片。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，爆香姜蒜，下香菇片大火翻炒至变软出汁（约2分钟）。","倒入鸡肉，加蚝油、盐，快速炒匀即可。"],k:"香菇不要焯水，直接煸炒出香味；香菇出的汁水是鲜味来源。"},
+      {n:"木耳炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"木耳",amount:"10g（泡发后约100g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","干木耳 10g（泡发后约100g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","干木耳泡发撕小朵，焯水1分钟捞出。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，爆香姜蒜，下木耳翻炒约1分钟。","倒入鸡肉，加蚝油、盐，快速炒匀即可。"],k:"木耳焯水去土腥味；鸡肉不要炒老。"},
+      {n:"杏鲍菇炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"杏鲍菇",amount:"2根（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","杏鲍菇 2根（约200g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","杏鲍菇切片或手撕成丝。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，下杏鲍菇中火煸炒至表面微黄变软出汁（约3分钟）。","倒入鸡肉，加蚝油、盐，快速炒匀即可。"],k:"杏鲍菇要干煸出水分再炒；手撕比刀切更易入味。"},
+      {n:"胡萝卜烧鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"胡萝卜",amount:"1根（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","胡萝卜 1根（约150g）"],f:["大蒜 2瓣（切片）","生姜 3片","小葱 1根（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["鸡肉切块（鸡胸切丁，鸡腿切块），加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","胡萝卜切滚刀块。","热锅下油，下鸡肉煸炒至表面微黄（约2-3分钟），盛出。","锅中留底油，下胡萝卜块中火翻炒2分钟。","倒入鸡肉，淋入碗汁，加盖中火焖煮8分钟，大火收汁撒葱段。"],k:"胡萝卜要先炒再焖，更易熟透；鸡肉先煸炒再焖更香。"},
+      {n:"土豆烧鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"土豆",amount:"1个（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","土豆 1个（约200g）"],f:["大蒜 2瓣（切片）","生姜 3片","小葱 1根（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["鸡肉切块，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","土豆去皮切块（约2cm见方），冲洗去淀粉。","热锅下油，下土豆块中火煎至表面微黄，盛出。","锅中留底油，下鸡肉煸炒至表面微黄，爆香姜蒜。","倒入土豆，淋入碗汁，加盖中火焖煮10分钟至土豆软烂，大火收汁撒葱段。"],k:"土豆要先煎再焖，外焦里糯；鸡肉不要焖太久否则柴。"},
+      {n:"宫保鸡丁",m:[{name:"鸡肉",amount:"150g"},{name:"花生米",amount:"50g"},{name:"黄瓜",amount:"50g"},{name:"胡萝卜",amount:"50g"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g（鸡腿肉）","油炸花生米 50g","黄瓜丁 50g","胡萝卜丁 50g"],f:["大蒜 3瓣（切片）","生姜 3片","干辣椒 5个（切段）","花椒 十几粒"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许","碗汁：香醋 2勺、生抽 1勺、白糖 1勺、淀粉 1小勺、清水 少许","炒制：食用油 3勺、盐 1小勺"],o:["鸡腿肉去骨切丁（约2cm见方），加生抽、料酒、淀粉、白胡椒粉抓匀，腌15分钟。","热锅下油，下鸡丁滑炒至变色，盛出备用。","锅中留底油，下花椒、干辣椒段小火爆香，下姜蒜片。","下胡萝卜丁、黄瓜丁翻炒1分钟断生，倒入鸡丁。","淋入碗汁，大火快速翻炒收汁，最后下花生米翻匀即可。"],k:"花椒辣椒小火爆香，大火易焦糊；碗汁提前调好；花生最后放保持酥脆。"},
+      {n:"黄焖鸡",m:[{name:"鸡肉",amount:"200g"},{name:"土豆",amount:"1个（约150g）"},{name:"青椒",amount:"1个（约80g）"},{name:"干香菇",amount:"5朵"}],s:"参考家常菜谱",t:"25分钟",z:["鸡肉 200g（鸡腿肉）","土豆 1个（约150g）","青椒 1个（约80g）","干香菇 5朵（泡发）"],f:["大蒜 3瓣（切片）","生姜 3片","干辣椒 2个"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、白糖 1小勺、清水 半碗","炒制：食用油 2勺"],o:["鸡腿肉切块，加生抽、料酒、淀粉抓匀腌15分钟。","土豆切块，青椒切块，香菇切片。","热锅下油，下鸡块煸炒至表面微黄（约3分钟），盛出。","锅中留底油，爆香姜蒜、干辣椒，下香菇片、土豆块翻炒2分钟。","倒入鸡块，淋入碗汁，加盖中火焖煮10分钟。","开盖下青椒块，大火翻炒收汁即可。"],k:"鸡块先煸炒再焖更香；香菇用干香菇更香（提前泡发）。"},
+      {n:"姜葱炒鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"大葱",amount:"1根"},{name:"小葱",amount:"1根"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g"],f:["生姜 5片","大葱 1根（切段）","小葱 1根（切段）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["鸡肉切片或块，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，下姜片爆香，再下大葱段、小葱段翻炒出香味（约1分钟）。","倒入鸡肉，加蚝油、盐，大火快速炒匀即可。"],k:"姜葱要多，突出姜葱香；这道菜少用其他调料，吃姜葱原味。"},
+      {n:"盐焗鸡",m:[{name:"鸡肉",amount:"1只（约200g，去骨）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 1只（约200g，去骨鸡腿肉）"],f:["生姜 3片","小葱 1根（切段）"],l:["腌制：盐焗粉 1勺（约10g）、料酒 1勺、食用油 1勺"],o:["鸡腿肉洗净擦干水分。","加盐焗粉、料酒、食用油、姜片、葱段抓匀，腌制20分钟。","腌好的鸡腿放入蒸碗，上锅大火蒸12-15分钟。","取出切块，淋上蒸出的汤汁即可。"],k:"鸡皮要擦干水分，盐焗粉才能附着；蒸的时间不要过长，否则肉质变老。"},
+      {n:"孜然鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"洋葱",amount:"半个（约80g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","洋葱 半个（约80g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1小勺","炒制：食用油 2勺、孜然粉 1小勺、辣椒粉 1小勺、盐 1小勺"],o:["鸡肉切片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1小勺油锁水，腌10分钟。","洋葱切丝。","热锅下油，滑炒鸡肉至表面微黄盛出（比平时多炒一会儿）。","锅中留底油，爆香蒜片，下洋葱丝炒软。","倒入鸡肉，加孜然粉、辣椒粉、盐，大火快速翻炒均匀即可。"],k:"孜然粉和辣椒粉最后放，大火快炒出香味；鸡肉可以炒得干香一些。"},
+      {n:"咖喱鸡肉",m:[{name:"鸡肉",amount:"150g"},{name:"土豆",amount:"1个（约150g）"},{name:"胡萝卜",amount:"半根（约80g）"},{name:"洋葱",amount:"半个（约80g）"}],s:"参考家常菜谱",t:"20分钟",z:["鸡肉 150g","土豆 1个（约150g）","胡萝卜 半根（约80g）","洋葱 半个（约80g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺","炒制：食用油 2勺、咖喱块 2块（约40g）、清水 适量"],o:["鸡肉切丁，加生抽、料酒、淀粉抓匀腌10分钟。","土豆、胡萝卜、洋葱切丁。","热锅下油，滑炒鸡肉至变色盛出。","锅中留底油，下洋葱丁炒香，再下土豆丁、胡萝卜丁翻炒2分钟。","加入清水没过食材，煮开后转中火煮8分钟至土豆软烂。","放入咖喱块，搅拌至融化，倒入鸡肉，中火煮2分钟收汁即可。"],k:"咖喱块本身有盐味，不用另加盐；土豆要煮到软烂才好吃。"}
+    ]
+  },
+  // ============================================================
+  // 四、鸡蛋 — 15道
+  // ============================================================
+  {
+    cat: "鸡蛋",
+    items: [
+      {n:"西红柿炒鸡蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"西红柿",amount:"2个（约300g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","西红柿 2个（约300g）"],f:["小葱 1根（切葱花）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺、生抽 1勺（可选）"],o:["鸡蛋打散，加盐和料酒搅匀至起泡。","西红柿切块（不去皮也成）。","热锅下油，油温六成热时倒入蛋液，滑炒至刚刚凝固，立即盛出。","锅中留底油，下西红柿块中火炒出汁水（约2分钟）。","倒入鸡蛋，加盐和生抽，快速翻炒均匀，撒葱花出锅。"],k:"鸡蛋要嫩滑，炒到七八分熟就出锅；西红柿要炒出汁再下蛋。"},
+      {n:"青椒炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"青椒",amount:"2个（约150g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","青椒 2个（约150g）"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","青椒切碎（或细丝）。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和青椒碎大火翻炒至断生（约1分钟）。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"青椒要切碎，鸡蛋才能和青椒均匀混合；大火快炒保持青椒脆嫩。"},
+      {n:"韭菜炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"韭菜",amount:"200g"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","韭菜 200g"],f:[],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","韭菜洗净切段（约4cm长），根和叶分开放。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下韭菜根先炒20秒，再下韭菜叶大火快速翻炒约30秒。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"韭菜根和叶分开下锅；韭菜不能久炒，断生即可。"},
+      {n:"洋葱炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"洋葱",amount:"1个（约150g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","洋葱 1个（约150g）"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","洋葱切丝。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和洋葱丝中火炒至透明变软（约3分钟）。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"洋葱要炒到透明出甜味，再和鸡蛋混合。"},
+      {n:"苦瓜炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"苦瓜",amount:"1根（约200g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","苦瓜 1根（约200g）"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["苦瓜对半切开去瓤，切薄片（约0.3cm），撒盐腌制10分钟，挤去苦水。","鸡蛋打散加盐和料酒。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和苦瓜片大火翻炒至断生（约2分钟）。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"苦瓜去苦味的关键是腌+挤水；苦瓜不要炒太久保持脆感。"},
+      {n:"蒜苔炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"蒜苔",amount:"200g"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","蒜苔 200g"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","蒜苔洗净切段（约4cm长），焯水1分钟捞出。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和蒜苔段大火翻炒约2分钟。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"蒜苔先焯水再炒，减少炒制时间，保证鸡蛋嫩滑。"},
+      {n:"黄瓜炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"黄瓜",amount:"1根（约150g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","黄瓜 1根（约150g）"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","黄瓜切片（约0.3cm厚）。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和黄瓜片大火快速翻炒约1分钟。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"黄瓜大火快炒，保持脆嫩；黄瓜炒久了出水变软。"},
+      {n:"西葫芦炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"西葫芦",amount:"1根（约200g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","西葫芦 1根（约200g）"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","西葫芦切片（约0.4cm厚）。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和西葫芦片大火翻炒至断生（约2分钟）。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"西葫芦炒软即可，不用炒太久出水。"},
+      {n:"木耳炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"木耳",amount:"10g（泡发后约100g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","干木耳 10g（泡发后约100g）"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","干木耳泡发撕小朵，焯水1分钟捞出。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和木耳翻炒约1分钟。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"木耳焯水去土腥味；这道菜木耳是脆的，鸡蛋是嫩的，口感对比强烈。"},
+      {n:"金针菇炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"金针菇",amount:"200g"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","金针菇 200g"],f:["大蒜 1瓣（切片）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["鸡蛋打散加盐和料酒。","金针菇切去根部洗净掰散，焯水30秒捞出沥干。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和金针菇大火翻炒约1分钟。","倒入鸡蛋，加盐，快速炒匀即可。"],k:"金针菇焯水时间要短，长了就烂了；金针菇水分多，大火快炒收汁。"},
+      {n:"虾仁炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"虾仁",amount:"100g"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","虾仁 100g"],f:["小葱 1根（切葱花）"],l:["虾仁腌制：料酒 1勺、盐 少许、白胡椒粉 少许","蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺"],o:["虾仁去虾线洗净，加料酒、盐、白胡椒粉腌5分钟。","鸡蛋打散加盐和料酒。","热锅下油，下虾仁滑炒至变色（约1分钟），盛出。","锅中补少许油，倒入蛋液滑炒至半凝固，倒入虾仁。","快速翻炒至蛋液完全凝固，撒葱花即可。"],k:"虾仁不要炒老，变色即出；鸡蛋炒到半凝固再下虾仁，保证两者都嫩。"},
+      {n:"蒸鸡蛋羹",m:[{name:"鸡蛋",amount:"2个"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 2个"],f:["小葱 1根（切葱花）"],l:["蛋液：温水 200ml、盐 1小勺","蒸制：生抽 1勺（淋面用）、香油 几滴"],o:["鸡蛋打散，加盐搅匀，再分次加入温水，边加边搅。","用细网筛过滤蛋液2遍（去除气泡）。","倒入蒸碗，盖上保鲜膜，用牙签扎几个小孔。","蒸锅水烧开，上锅中火蒸8分钟，关火焖2分钟。","取出淋上生抽和香油，撒葱花即可。"],k:"必须用温水；必须过滤；必须盖保鲜膜。"},
+      {n:"蛋花汤",m:[{name:"鸡蛋",amount:"2个"},{name:"西红柿",amount:"1个（或紫菜1小把）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 2个","西红柿 1个（或紫菜 1小把）"],f:["小葱 1根（切葱花）"],l:["汤底：清水 500ml、盐 1小勺、生抽 1勺、香油 几滴","蛋液：料酒 1小勺"],o:["鸡蛋打散加料酒。","西红柿切块（或紫菜撕碎）。","锅中烧水，水开后下西红柿块煮2分钟（紫菜则煮开即可）。","保持水沸腾状态，将蛋液转圈缓缓倒入锅中，形成蛋花。","加盐、生抽调味，关火淋香油、撒葱花即可。"],k:"蛋液要转圈倒入，形成漂亮蛋花；倒入后不要搅拌，否则蛋花碎成渣。"},
+      {n:"土豆丝炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"土豆",amount:"1个（约200g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","土豆 1个（约200g）"],f:["大蒜 1瓣（切片）","小葱 1根（切段）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺、香醋 1小勺（可选）"],o:["鸡蛋打散加盐和料酒。","土豆去皮切细丝，用清水冲洗2遍去淀粉，沥干。","热锅下油，倒入蛋液滑炒至凝固，盛出。","锅中补少许油，下蒜片和土豆丝大火翻炒至断生（约2分钟）。","倒入鸡蛋，加盐、香醋（可选），快速炒匀撒葱段即可。"],k:"土豆丝去淀粉才脆；香醋沿锅边淋入，激发出锅气。"},
+      {n:"香肠炒蛋",m:[{name:"鸡蛋",amount:"3个"},{name:"香肠",amount:"1根（约50g）"}],s:"参考家常菜谱",t:"10分钟",z:["鸡蛋 3个","香肠 1根（约50g）"],f:["小葱 1根（切葱花）"],l:["蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 2勺"],o:["鸡蛋打散加盐和料酒。","香肠切片（斜刀片，约0.3cm厚）。","热锅下油，下香肠片中火煸炒至表面微焦出油（约2分钟），盛出。","锅中留底油，倒入蛋液滑炒至凝固，倒入香肠。","快速翻炒均匀，撒葱花即可。"],k:"香肠先煸炒出油，香味才出来；香肠本身有咸味，蛋液盐要少放。"}
+    ]
+  },
+  // ============================================================
+  // 五、鱼类 — 15道
+  // ============================================================
+  {
+    cat: "鱼类",
+    items: [
+      {n:"清蒸鲈鱼",m:[{name:"鲈鱼",amount:"1条（约400g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲈鱼 1条（约400g）"],f:["生姜 4片","大葱 1段（切丝）","红椒 少许（切丝）"],l:["蒸鱼豉油 2勺","食用油 2勺（烧热浇）","料酒 1勺（抹鱼身）","盐 少许"],o:["鲈鱼处理干净，两面划三刀，抹盐和料酒，塞姜片。","鱼身下垫葱段，上锅大火蒸8-10分钟。","蒸好后倒掉盘中汤汁。","鱼身撒葱丝和红椒丝，淋蒸鱼豉油。","烧热2勺油浇在葱丝上即可。"],k:"蒸鱼时间精准，8分钟足够；汤汁必须倒掉。"},
+      {n:"红烧鲈鱼",m:[{name:"鲈鱼",amount:"1条（约400g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲈鱼 1条（约400g）"],f:["生姜 3片","大蒜 3瓣（切片）","小葱 1根（切段）"],l:["腌制：料酒 1勺、盐 1小勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、白糖 1小勺、清水 半碗","炒制：食用油 3勺"],o:["鲈鱼处理干净，划几刀，抹盐和料酒腌10分钟。","吸干水分，热锅下油，煎至两面金黄。","爆香姜蒜，淋入碗汁，加盖中火焖煮5分钟。","开盖大火收汁，撒葱段即可。"],k:"煎鱼前吸干水分；焖煮时间不要过长。"},
+      {n:"干煎带鱼",m:[{name:"带鱼",amount:"2条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["带鱼 2条（约300g）"],f:["生姜 3片","大葱 1段（切段）"],l:["腌制：料酒 2勺、盐 1小勺、白胡椒粉 少许","煎制：食用油 3勺、花椒 十几粒（可选）"],o:["带鱼切段，加料酒、盐、白胡椒粉、姜片、葱段腌15分钟。","吸干水分，热锅下油，中小火煎至两面金黄（每面约4-5分钟）。","出锅前撒花椒粒增香。"],k:"腌鱼时间要够；煎鱼不要频繁翻动。"},
+      {n:"红烧带鱼",m:[{name:"带鱼",amount:"2条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["带鱼 2条（约300g）"],f:["生姜 3片","大蒜 3瓣（切片）","小葱 1根（切段）"],l:["腌制：料酒 1勺、盐 1小勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、白糖 1小勺、清水 半碗","炒制：食用油 3勺"],o:["带鱼切段，加料酒、盐腌10分钟，吸干水分。","热锅下油，煎至两面金黄。","爆香姜蒜，淋入碗汁，加盖中火焖煮3分钟。","开盖大火收汁，撒葱段即可。"],k:"带鱼段不要太大；焖煮3分钟足够。"},
+      {n:"椒盐带鱼",m:[{name:"带鱼",amount:"2条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["带鱼 2条（约300g）"],f:["生姜 3片","大葱 1段（切段）"],l:["腌制：料酒 2勺、盐 1小勺、白胡椒粉 少许","煎制：食用油 3勺、椒盐粉 1小勺"],o:["带鱼切段，加料酒、盐、白胡椒粉、姜片、葱段腌15分钟。","吸干水分，热锅下油，中小火煎至两面金黄酥脆。","出锅前撒椒盐粉翻匀即可。"],k:"煎到酥脆是关键；椒盐粉最后撒。"},
+      {n:"红烧鲳鱼",m:[{name:"鲳鱼",amount:"1条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲳鱼 1条（约300g）"],f:["生姜 3片","大蒜 3瓣（切片）","小葱 1根（切段）"],l:["腌制：料酒 1勺、盐 1小勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、白糖 1小勺、清水 半碗","炒制：食用油 3勺"],o:["鲳鱼处理干净，划几刀，抹盐和料酒腌10分钟。","热锅下油，煎至两面金黄。","爆香姜蒜，淋入碗汁，加盖中火焖煮5分钟。","开盖大火收汁，撒葱段即可。"],k:"鲳鱼肉厚，焖煮时间要比带鱼稍长。"},
+      {n:"干煎鲳鱼",m:[{name:"鲳鱼",amount:"1条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲳鱼 1条（约300g）"],f:["生姜 3片"],l:["腌制：料酒 1勺、盐 1小勺、白胡椒粉 少许","煎制：食用油 3勺"],o:["鲳鱼处理干净，划几刀，抹料酒、盐、白胡椒粉，塞姜片腌15分钟。","吸干水分，热锅下油，中小火煎至两面金黄酥脆即可。"],k:"盐和胡椒是主味；煎到酥脆才香。"},
+      {n:"豆豉蒸鲳鱼",m:[{name:"鲳鱼",amount:"1条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲳鱼 1条（约300g）"],f:["豆豉 1勺（切碎）","生姜 3片（切丝）","小葱 1根（切段）"],l:["腌制：料酒 1勺、盐 少许","蒸制：生抽 1勺、蚝油 1勺、食用油 1勺"],o:["鲳鱼处理干净，划几刀，抹料酒和盐。","鱼身铺姜丝、豆豉碎，淋生抽、蚝油、食用油。","上锅大火蒸8-10分钟，取出撒葱段即可。"],k:"豆豉要切碎，香味才能释放；蒸鱼时间不要过长。"},
+      {n:"香煎青花鱼",m:[{name:"青花鱼",amount:"1条（约250g）"}],s:"参考家常菜谱",t:"15分钟",z:["青花鱼 1条（约250g）"],f:["柠檬 2片"],l:["腌制：盐 1小勺、黑胡椒 少许","煎制：食用油 2勺"],o:["青花鱼解冻吸干水分，两面抹盐和黑胡椒腌10分钟。","热锅下油，中火煎至两面金黄酥脆（每面约4分钟）。","出锅挤柠檬汁即可。"],k:"青花鱼油脂丰富，不用放太多油；煎到鱼皮酥脆。"},
+      {n:"盐烤青花鱼",m:[{name:"青花鱼",amount:"1条（约250g）"}],s:"参考家常菜谱",t:"20分钟",z:["青花鱼 1条（约250g）"],f:["柠檬 2片"],l:["腌制：盐 1小勺、料酒 1勺"],o:["青花鱼解冻吸干水分，两面抹盐和料酒腌10分钟。","烤箱200度预热，鱼身刷薄油，烤12-15分钟（中途翻面）。","取出挤柠檬汁即可。"],k:"烤箱烤比煎的更干香；鱼身刷油防粘。"},
+      {n:"盐烤秋刀鱼",m:[{name:"秋刀鱼",amount:"2条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["秋刀鱼 2条（约300g）"],f:["柠檬 2片","白萝卜 少许（磨泥）"],l:["腌制：盐 1小勺、料酒 1勺"],o:["秋刀鱼洗净吸干水分，两面抹盐和料酒腌10分钟。","烤箱200度预热，鱼身刷薄油，烤12-15分钟。","取出挤柠檬汁，配萝卜泥即可。"],k:"秋刀鱼建议去内脏；萝卜泥是传统搭配解腻。"},
+      {n:"味噌煮青花鱼",m:[{name:"青花鱼",amount:"1条（约250g）"}],s:"参考家常菜谱",t:"15分钟",z:["青花鱼 1条（约250g）"],f:["生姜 3片","大葱 1段（切段）"],l:["味噌酱汁：白味噌 1勺、料酒 1勺、生抽 1勺、白糖 1小勺、清水 半碗","炒制：食用油 1勺"],o:["青花鱼解冻切段，吸干水分。","锅中下油，下姜片和鱼段中火煎至两面微黄。","味噌酱汁调匀倒入锅中，加盖中火煮5分钟。","开盖大火收汁，撒葱段即可。"],k:"味噌提前调匀防结块；味噌有咸味不用另加盐。"},
+      {n:"青椒焖鱼块",m:[{name:"鲳鱼（或鲈鱼）",amount:"1条（约300g，切块）"},{name:"青椒",amount:"2个（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲳鱼（或鲈鱼）1条（约300g，切块）","青椒 2个（切块）"],f:["生姜 3片","大蒜 3瓣（切片）"],l:["腌制：料酒 1勺、盐 1小勺","碗汁：生抽 2勺、蚝油 1勺、清水 半碗","炒制：食用油 3勺"],o:["鱼切块，加料酒、盐腌10分钟。","热锅下油，煎至两面金黄。","爆香姜蒜，下青椒块翻炒至断生。","淋入碗汁，加盖中火焖煮3分钟，大火收汁即可。"],k:"鱼块煎到金黄再焖；青椒最后放保持脆绿。"},
+      {n:"番茄焖鱼块",m:[{name:"鲳鱼（或带鱼）",amount:"1条（约300g，切块）"},{name:"西红柿",amount:"2个（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲳鱼（或带鱼）1条（约300g，切块）","西红柿 2个（切块）"],f:["生姜 3片","大蒜 3瓣（切片）","小葱 1根（切段）"],l:["腌制：料酒 1勺、盐 1小勺","碗汁：生抽 2勺、蚝油 1勺、白糖 1小勺、清水 半碗","炒制：食用油 3勺"],o:["鱼切块，加料酒、盐腌10分钟。","热锅下油，煎至两面金黄。","爆香姜蒜，下西红柿块中火炒出汁。","淋入碗汁，加盖中火焖煮5分钟，大火收汁撒葱段。"],k:"西红柿炒出汁是关键；鱼块焖煮时间不要过长。"},
+      {n:"蒜蓉蒸鱼",m:[{name:"鲳鱼（或鲈鱼）",amount:"1条（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["鲳鱼（或鲈鱼）1条（约300g）"],f:["大蒜 5瓣（切末）","生姜 3片（切丝）","小葱 1根（切段）"],l:["腌制：料酒 1勺、盐 1小勺","蒸制：蒸鱼豉油 2勺、蚝油 1勺、食用油 2勺（1勺拌蒜蓉，1勺烧热浇）"],o:["鱼处理干净，划几刀，抹料酒和盐腌10分钟。","蒜末加1勺食用油拌匀，铺鱼身上，再铺姜丝。","上锅大火蒸8-10分钟。","取出倒掉汤汁，淋蒸鱼豉油和蚝油，撒葱段，浇上烧热的食用油即可。"],k:"蒜蓉用油拌过再蒸香味更足；浇热油是点睛之笔。"}
+    ]
+  },
+  // ============================================================
+  // 六、虾类 — 14道
+  // ============================================================
+  {
+    cat: "虾类",
+    items: [
+      {n:"油焖大虾",m:[{name:"基围虾",amount:"250g"}],s:"参考家常菜谱",t:"15分钟",z:["基围虾 250g"],f:["生姜 3片","大蒜 2瓣（切片）","小葱 1根（切段）"],l:["碗汁：生抽 2勺、蚝油 1勺、料酒 1勺、白糖 1小勺、清水 半碗","食用油 2勺"],o:["虾剪去虾须、虾枪，开背去虾线，洗净沥干。","热锅下油，下姜蒜爆香，下虾大火煎至两面变红（约1分钟）。","淋入碗汁，加盖中火焖煮2-3分钟。","开盖大火收汁，撒葱段即可。"],k:"虾要开背更入味；焖煮时间不超过3分钟。"},
+      {n:"蒜蓉粉丝蒸虾",m:[{name:"基围虾",amount:"200g"},{name:"粉丝",amount:"1把（约50g）"}],s:"参考家常菜谱",t:"15分钟",z:["基围虾 200g","粉丝 1把（约50g）"],f:["大蒜 5瓣（切末）","生姜 2片（切末）","小葱 1根（切葱花）"],l:["蒜蓉酱：蒜末+姜末+生抽 2勺+蚝油 1勺+食用油 2勺+盐 1小勺","蒸制：料酒 1勺"],o:["粉丝温水泡软铺盘底。","虾开背去虾线，展开铺在粉丝上。","蒜蓉酱调匀铺在虾背上。","上锅大火蒸5-6分钟，取出撒葱花。","烧热少许油浇在葱花上即可。"],k:"粉丝铺底吸收虾汁；蒜蓉酱要足。"},
+      {n:"香辣干锅虾",m:[{name:"基围虾",amount:"250g"},{name:"土豆",amount:"1个"},{name:"藕片",amount:"100g"},{name:"洋葱",amount:"半个"}],s:"参考家常菜谱",t:"25分钟",z:["基围虾 250g","土豆 1个（切片）","藕片 100g","洋葱 半个（切块）"],f:["干辣椒 10个（切段）","花椒 1小勺","生姜 3片","大蒜 3瓣（切片）"],l:["腌制：料酒 1勺、盐 1小勺、淀粉 1勺","炒制：食用油 3勺、豆瓣酱 1勺、生抽 1勺、白糖 1小勺、白芝麻 1勺"],o:["虾开背去虾线，加料酒、盐、淀粉抓匀。","土豆片、藕片焯水至断生，捞出。","热锅下油，下虾煎至外壳酥脆，盛出。","锅中留底油，下花椒、干辣椒段爆香，下姜蒜、豆瓣酱炒出红油。","下土豆片、藕片、洋葱块翻炒2分钟，倒入虾，加生抽、白糖、白芝麻炒匀即可。"],k:"虾要煎到外壳酥脆；豆瓣酱炒出红油是关键。"},
+      {n:"盐焗虾",m:[{name:"基围虾",amount:"250g"}],s:"参考家常菜谱",t:"20分钟",z:["基围虾 250g"],f:["生姜 3片","小葱 1根（切段）"],l:["腌制：盐焗粉 1勺（约10g）、料酒 1勺、食用油 1勺"],o:["虾去虾线洗净，加盐焗粉、料酒、食用油、姜片、葱段抓匀腌15分钟。","烤箱200度预热，虾铺烤盘烤8-10分钟（空气炸锅180度8分钟也可）。","取出装盘即可。"],k:"盐焗粉是主味；烤的时间不要过长。"},
+      {n:"黄油蒜香虾",m:[{name:"基围虾",amount:"250g"}],s:"参考家常菜谱",t:"15分钟",z:["基围虾 250g"],f:["大蒜 5瓣（切末）","黄油 20g"],l:["腌制：料酒 1勺、盐 1小勺、黑胡椒 少许","炒制：橄榄油 1勺、盐 1小勺"],o:["虾去虾线，加料酒、盐、黑胡椒腌10分钟。","热锅下橄榄油，下虾中火煎至两面变红，盛出。","锅中下黄油融化，下蒜末小火炒至金黄出香味。","倒入虾，快速翻炒均匀，加盐调味即可。"],k:"黄油小火融化，大火会焦；蒜末炒到金黄才香。"},
+      {n:"避风塘炒虾",m:[{name:"基围虾",amount:"250g"}],s:"参考家常菜谱",t:"20分钟",z:["基围虾 250g"],f:["大蒜 1整头（切末）","干辣椒 5个（切段）","面包糠 50g"],l:["腌制：料酒 1勺、盐 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["虾开背去虾线，加料酒、盐腌10分钟，裹薄淀粉。","热锅多放油，下虾炸至外壳酥脆，盛出。","锅中留底油，下蒜末小火炒至金黄，下干辣椒段、面包糠炒至酥脆。","倒入炸好的虾，加盐快速翻匀即可。"],k:"蒜末要炒到金黄但不能焦；面包糠炒到酥脆才香。"},
+      {n:"滑蛋虾仁",m:[{name:"虾仁",amount:"150g"},{name:"鸡蛋",amount:"3个"}],s:"参考家常菜谱",t:"10分钟",z:["虾仁 150g","鸡蛋 3个"],f:["小葱 1根（切葱花）"],l:["虾仁腌制：料酒 1勺、盐 少许、白胡椒粉 少许","蛋液：盐 1小勺、料酒 1小勺、清水 2勺","炒制：食用油 3勺"],o:["虾仁去虾线洗净，加料酒、盐、白胡椒粉腌5分钟。","鸡蛋打散加盐、料酒、清水搅匀。","热锅下油，下虾仁滑炒至变色，盛出。","锅中补少许油，倒入蛋液，小火推炒至半凝固。","倒入虾仁，轻轻推匀至蛋液完全凝固，撒葱花即可。"],k:"蛋液加清水更嫩；全程小火推炒。"},
+      {n:"宫爆虾球",m:[{name:"虾仁",amount:"200g"},{name:"花生米",amount:"50g"}],s:"参考家常菜谱",t:"15分钟",z:["虾仁 200g","油炸花生米 50g"],f:["大蒜 3瓣（切片）","生姜 3片","干辣椒 5个（切段）","花椒 十几粒"],l:["虾仁腌制：料酒 1勺、盐 1小勺、淀粉 1小勺、白胡椒粉 少许","碗汁：香醋 2勺、生抽 1勺、白糖 1勺、淀粉 1小勺、清水 少许","炒制：食用油 3勺"],o:["虾仁去虾线，加料酒、盐、淀粉、白胡椒粉腌10分钟。","热锅下油，滑炒虾仁至变色卷曲，盛出。","锅中留底油，下花椒、干辣椒段爆香，下姜蒜片。","倒入虾仁，淋入碗汁，大火快速翻炒收汁，最后下花生米翻匀即可。"],k:"虾仁滑炒时间要短，卷曲即出；碗汁提前调好。"},
+      {n:"虾仁豆腐",m:[{name:"虾仁",amount:"100g"},{name:"豆腐",amount:"1盒（约300g）"}],s:"参考家常菜谱",t:"15分钟",z:["虾仁 100g","嫩豆腐 1盒（约300g）"],f:["大蒜 2瓣（切末）","小葱 1根（切葱花）"],l:["虾仁腌制：料酒 1勺、盐 少许","碗汁：生抽 2勺、蚝油 1勺、清水 半碗、淀粉 1小勺","食用油 2勺"],o:["虾仁去虾线，加料酒、盐腌5分钟。","豆腐切小块，焯水1分钟捞出。","热锅下油，爆香蒜末，下虾仁滑炒至变色。","倒入豆腐块，轻轻晃动锅，淋入碗汁。","小火煮2分钟，轻轻推匀，大火收汁撒葱花。"],k:"豆腐不要翻炒，用推的方式；虾仁和豆腐都嫩，火候要轻。"},
+      {n:"虾仁炒黄瓜",m:[{name:"虾仁",amount:"100g"},{name:"黄瓜",amount:"1根（约150g）"}],s:"参考家常菜谱",t:"10分钟",z:["虾仁 100g","黄瓜 1根（约150g）"],f:["大蒜 2瓣（切片）"],l:["虾仁腌制：料酒 1勺、盐 少许","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["虾仁去虾线，加料酒、盐腌5分钟。","黄瓜切片（约0.3cm厚）。","热锅下油，下虾仁滑炒至变色，盛出。","锅中留底油，爆香蒜片，下黄瓜片大火快速翻炒约1分钟。","倒入虾仁，加蚝油、盐，快速炒匀即可。"],k:"黄瓜大火快炒保持脆嫩；虾仁不要炒老。"},
+      {n:"虾仁炒西兰花",m:[{name:"虾仁",amount:"100g"},{name:"西兰花",amount:"1颗（约200g）"}],s:"参考家常菜谱",t:"15分钟",z:["虾仁 100g","西兰花 1颗（约200g）"],f:["大蒜 2瓣（切片）"],l:["虾仁腌制：料酒 1勺、盐 少许","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["虾仁去虾线，加料酒、盐腌5分钟。","西兰花掰小朵，焯水1分钟捞出。","热锅下油，下虾仁滑炒至变色，盛出。","锅中留底油，爆香蒜片，下西兰花大火翻炒约1分钟。","倒入虾仁，加蚝油、盐，快速炒匀即可。"],k:"西兰花先焯水再炒；虾仁不要炒老。"},
+      {n:"虾仁炒芦笋",m:[{name:"虾仁",amount:"100g"},{name:"芦笋",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["虾仁 100g","芦笋 200g"],f:["大蒜 2瓣（切片）"],l:["虾仁腌制：料酒 1勺、盐 少许","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["虾仁去虾线，加料酒、盐腌5分钟。","芦笋去老根切段（约5cm），焯水1分钟捞出。","热锅下油，下虾仁滑炒至变色，盛出。","锅中留底油，爆香蒜片，下芦笋段大火翻炒约1分钟。","倒入虾仁，加蚝油、盐，快速炒匀即可。"],k:"芦笋去老根是关键；虾仁不要炒老。"},
+      {n:"虾仁玉米粒",m:[{name:"虾仁",amount:"100g"},{name:"玉米粒",amount:"150g"},{name:"胡萝卜",amount:"50g"},{name:"青豆",amount:"50g"}],s:"参考家常菜谱",t:"10分钟",z:["虾仁 100g","玉米粒 150g","胡萝卜丁 50g","青豆 50g"],f:["大蒜 2瓣（切末）"],l:["虾仁腌制：料酒 1勺、盐 少许","炒制：食用油 2勺、盐 1小勺"],o:["虾仁去虾线，加料酒、盐腌5分钟。","玉米粒、胡萝卜丁、青豆洗净沥干。","热锅下油，下虾仁滑炒至变色，盛出。","锅中留底油，爆香蒜末，下杂菜大火翻炒2分钟。","倒入虾仁，加盐，快速炒匀即可。"],k:"杂菜本身有甜味，调味不用太重；虾仁不要炒老。"},
+      {n:"虾仁滑蛋饭",m:[{name:"虾仁",amount:"100g"},{name:"鸡蛋",amount:"2个"},{name:"米饭",amount:"1碗"}],s:"参考家常菜谱",t:"10分钟",z:["虾仁 100g","鸡蛋 2个","米饭 1碗"],f:["小葱 1根（切葱花）"],l:["虾仁腌制：料酒 1勺、盐 少许","蛋液：盐 1小勺、料酒 1小勺","炒制：食用油 3勺、盐 1小勺"],o:["虾仁去虾线，加料酒、盐腌5分钟。","鸡蛋打散加盐和料酒。","热锅下油，下虾仁滑炒至变色，盛出。","锅中补少许油，倒入蛋液小火推炒至半凝固。","倒入米饭，用锅铲压散炒匀，倒入虾仁，加盐调味，撒葱花即可。"],k:"蛋液半凝固时下米饭；全程小火。"}
+    ]
+  },
+  // ============================================================
+  // 七、牛羊肉卷 — 13道
+  // ============================================================
+  {
+    cat: "牛羊肉卷",
+    items: [
+      {n:"洋葱肥牛卷",m:[{name:"肥牛卷",amount:"200g"},{name:"洋葱",amount:"1个（约150g）"}],s:"参考家常菜谱",t:"15分钟",z:["肥牛卷 200g","洋葱 1个（约150g）"],f:["大蒜 2瓣（切片）"],l:["碗汁：生抽 2勺、蚝油 1勺、料酒 1勺、白糖 1小勺、淀粉 1小勺、清水 半碗","食用油 2勺"],o:["肥牛卷解冻，洋葱切丝。","锅中烧水，水开后下肥牛卷焯烫至变色（约10秒），捞出沥干。","热锅下油，爆香蒜片，下洋葱丝中火炒至透明变软（约3分钟）。","倒入肥牛卷，淋入碗汁，大火快速翻炒均匀，收汁即可。"],k:"肥牛焯水时间极短，变色即出；洋葱要炒软出甜味。"},
+      {n:"酸汤肥牛",m:[{name:"肥牛卷",amount:"200g"},{name:"金针菇",amount:"100g"}],s:"参考家常菜谱",t:"15分钟",z:["肥牛卷 200g","金针菇 100g"],f:["生姜 3片","大蒜 3瓣（切片）","小米椒 2个（切圈）"],l:["酸汤料：黄灯笼辣椒酱 1勺+白醋 2勺（或酸汤肥牛调料包）","食用油 2勺"],o:["金针菇切根洗净，焯水1分钟铺碗底。","肥牛卷焯烫至变色（约10秒）捞出沥干。","锅中下油，爆香姜蒜，下黄灯笼辣椒酱炒香，加水烧开。","下肥牛卷煮约30秒，连汤带肉浇在金针菇上，撒小米椒即可。"],k:"黄灯笼辣椒酱是酸汤灵魂；肥牛煮的时间要短。"},
+      {n:"金针菇肥牛卷",m:[{name:"肥牛卷",amount:"200g"},{name:"金针菇",amount:"100g"}],s:"参考家常菜谱",t:"15分钟",z:["肥牛卷 200g","金针菇 100g"],f:["小葱 1根（切段）"],l:["碗汁：生抽 2勺、蚝油 1勺、料酒 1勺、白糖 1小勺、清水 半碗","食用油 2勺"],o:["金针菇切根分成小束。","肥牛卷解冻，将金针菇卷在肥牛卷里（卷紧）。","热锅下油，将肥牛卷接口朝下放入锅中，中火煎至两面金黄（每面约2分钟）。","淋入碗汁，加盖中火焖煮2分钟，开盖大火收汁，撒葱段即可。"],k:"卷紧是关键；接口朝下先煎定型。"},
+      {n:"肥牛白菜炖粉条",m:[{name:"肥牛卷",amount:"200g"},{name:"白菜",amount:"200g"},{name:"粉条",amount:"50g"}],s:"参考家常菜谱",t:"20分钟",z:["肥牛卷 200g","白菜 200g","粉条 50g"],f:["生姜 3片","大蒜 2瓣（切片）"],l:["碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、清水 1碗","食用油 2勺、盐 1小勺"],o:["粉条温水泡软（约20分钟），白菜切块。","肥牛卷焯烫至变色捞出。","热锅下油，爆香姜蒜，下白菜块翻炒至变软（约3分钟）。","加粉条、碗汁和水，中火炖5分钟。","下肥牛卷煮1分钟，加盐调味即可。"],k:"粉条要提前泡软；白菜炖到软烂才好吃。"},
+      {n:"西红柿肥牛",m:[{name:"肥牛卷",amount:"200g"},{name:"西红柿",amount:"2个（约300g）"}],s:"参考家常菜谱",t:"15分钟",z:["肥牛卷 200g","西红柿 2个（约300g）"],f:["生姜 3片","大蒜 2瓣（切片）","小葱 1根（切段）"],l:["食用油 2勺、盐 1小勺、蚝油 1勺"],o:["肥牛卷焯烫至变色捞出。","西红柿切块。","热锅下油，爆香姜蒜，下西红柿块中火炒出汁（约2分钟）。","加一碗水烧开，下肥牛卷煮约30秒。","加盐、蚝油调味，撒葱段即可。"],k:"西红柿要炒出汁再加水；肥牛最后放。"},
+      {n:"泡菜肥牛锅",m:[{name:"肥牛卷",amount:"200g"},{name:"韩式泡菜",amount:"150g"}],s:"参考家常菜谱",t:"15分钟",z:["肥牛卷 200g","韩式泡菜 150g"],f:["洋葱 半个（切丝）","大蒜 2瓣（切片）","豆腐 半盒（切块）"],l:["食用油 2勺、韩式辣酱 1勺、生抽 1勺、白糖 1小勺"],o:["肥牛卷焯烫至变色捞出。","热锅下油，爆香蒜片、洋葱丝，下泡菜翻炒出香味（约2分钟）。","加一碗水，下韩式辣酱、生抽、白糖煮开。","下豆腐块煮2分钟，再下肥牛卷煮约30秒即可。"],k:"泡菜要炒出香味再加水；豆腐和肥牛煮的时间都不能长。"},
+      {n:"孜然牛肉卷",m:[{name:"肥牛卷",amount:"200g"},{name:"洋葱",amount:"半个（约80g）"},{name:"香菜",amount:"1小把"}],s:"参考家常菜谱",t:"15分钟",z:["肥牛卷 200g","洋葱 半个（约80g）","香菜 1小把"],f:["生姜 3片","大蒜 2瓣（切片）"],l:["腌制：料酒 1勺、生抽 1勺","炒制：食用油 2勺、孜然粉 1小勺、辣椒粉 1小勺、盐 1小勺"],o:["肥牛卷稍解冻，加料酒、生抽抓匀腌5分钟。","洋葱切丝，香菜切段。","热锅下油，爆香姜蒜，下肥牛卷大火爆炒至变色（约30秒）。","加入洋葱丝翻炒至变软，加孜然粉、辣椒粉、盐调味。","下香菜段快速炒匀即可。"],k:"肥牛卷大火爆炒不要久；孜然粉和辣椒粉最后放。"},
+      {n:"葱爆羊肉卷",m:[{name:"羊肉卷",amount:"200g"},{name:"大葱",amount:"1根（约100g）"}],s:"参考家常菜谱",t:"15分钟",z:["羊肉卷 200g","大葱 1根（约100g）"],f:["生姜 3片"],l:["腌制：料酒 1勺、生抽 1勺、白胡椒粉 少许","炒制：食用油 2勺、孜然粉 1小勺、盐 1小勺、老抽 半勺"],o:["羊肉卷稍解冻，加料酒、生抽、白胡椒粉抓匀腌5分钟。","大葱斜切成段。","热锅下油，下姜片爆香，倒入羊肉卷大火爆炒至变色（约30秒）。","加入大葱段，继续大火翻炒约1分钟，加孜然粉、盐、老抽调味。","炒至大葱断生即可出锅。"],k:"羊肉卷不要炒久；大葱最后放保持脆甜。"},
+      {n:"孜然羊肉卷",m:[{name:"羊肉卷",amount:"200g"},{name:"洋葱",amount:"半个（约80g）"},{name:"香菜",amount:"1小把"}],s:"参考家常菜谱",t:"15分钟",z:["羊肉卷 200g","洋葱 半个（约80g）","香菜 1小把"],f:["生姜 3片"],l:["腌制：料酒 1勺、生抽 1勺、白胡椒粉 少许","炒制：食用油 2勺、孜然粉 1小勺、辣椒粉 1小勺、盐 1小勺"],o:["羊肉卷稍解冻，加料酒、生抽、白胡椒粉抓匀腌5分钟。","洋葱切丝，香菜切段。","热锅下油，下姜片爆香，倒入羊肉卷大火爆炒至变色（约30秒）。","加入洋葱丝翻炒至变软，加孜然粉、辣椒粉、盐调味。","下香菜段快速炒匀即可。"],k:"羊肉卷不要炒久；孜然粉和辣椒粉最后放。"},
+      {n:"酸菜羊肉卷",m:[{name:"羊肉卷",amount:"200g"},{name:"酸菜",amount:"150g"}],s:"参考家常菜谱",t:"15分钟",z:["羊肉卷 200g","酸菜 150g"],f:["生姜 3片","大蒜 2瓣（切片）","干辣椒 2个"],l:["食用油 2勺、生抽 1勺、蚝油 1勺"],o:["羊肉卷稍解冻，酸菜洗净挤干切丝。","热锅下油，爆香姜蒜、干辣椒，下酸菜丝中火煸炒出香味（约2分钟）。","加一碗水烧开，下羊肉卷大火煮至变色（约1分钟）。","加生抽、蚝油调味即可。"],k:"酸菜要煸炒出香味再加水；羊肉卷煮的时间要短。"},
+      {n:"白菜炖羊肉卷",m:[{name:"羊肉卷",amount:"200g"},{name:"白菜",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["羊肉卷 200g","白菜 200g"],f:["生姜 3片","大蒜 2瓣（切片）"],l:["食用油 2勺、生抽 2勺、蚝油 1勺、盐 1小勺"],o:["羊肉卷稍解冻，白菜切块。","热锅下油，爆香姜蒜，下白菜块翻炒至变软（约3分钟）。","加一碗水，下生抽、蚝油，中火炖5分钟。","下羊肉卷煮至变色（约1分钟），加盐调味即可。"],k:"白菜炖到软烂才好吃；羊肉卷最后放。"},
+      {n:"金针菇羊肉卷",m:[{name:"羊肉卷",amount:"200g"},{name:"金针菇",amount:"100g"}],s:"参考家常菜谱",t:"15分钟",z:["羊肉卷 200g","金针菇 100g"],f:["小葱 1根（切段）"],l:["碗汁：生抽 2勺、蚝油 1勺、料酒 1勺、白糖 1小勺、清水 半碗","食用油 2勺"],o:["金针菇切根分成小束，用羊肉卷卷起（卷紧）。","热锅下油，将羊肉卷接口朝下放入锅中，中火煎至两面金黄（每面约2分钟）。","淋入碗汁，加盖中火焖煮2分钟，开盖大火收汁，撒葱段即可。"],k:"卷紧是关键；接口朝下先煎定型。"},
+      {n:"白萝卜羊肉卷汤",m:[{name:"羊肉卷",amount:"200g"},{name:"白萝卜",amount:"半根（约300g）"}],s:"参考家常菜谱",t:"20分钟",z:["羊肉卷 200g","白萝卜 半根（约300g）"],f:["生姜 3片","小葱 1根（切段）"],l:["食用油 1勺、盐 1小勺、白胡椒粉 少许"],o:["白萝卜去皮切滚刀块。","锅中下油，爆香姜片，下白萝卜块翻炒2分钟。","加清水没过萝卜，大火煮开后转中火煮10分钟至萝卜软烂。","下羊肉卷煮至变色（约1分钟），加盐、白胡椒粉调味，撒葱段即可。"],k:"白萝卜煮到软烂才好吃；羊肉卷最后放。"}
+    ]
+  },
+  // ============================================================
+  // 八、牛肉（鲜）— 10道
+  // ============================================================
+  {
+    cat: "牛肉（鲜）",
+    items: [
+      {n:"小炒黄牛肉",m:[{name:"牛肉",amount:"150g"},{name:"泡椒",amount:"5-6个"},{name:"小米辣",amount:"3-4个"},{name:"香菜",amount:"1小把"}],s:"参考家常菜谱",t:"20分钟",z:["牛里脊肉 150g","泡椒 5-6个","小米辣 3-4个","香菜 1小把"],f:["生姜 3片","大蒜 3瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1勺","炒制：食用油 2勺、蚝油 1勺、盐 1小勺"],o:["牛肉逆纹切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1勺食用油锁水，腌10分钟。","泡椒、小米辣切圈，香菜切段。","热锅下油，油温七成热时下牛肉片，大火滑炒至变色（约20-30秒），立即盛出。","锅中留底油，爆香姜蒜、泡椒、小米辣，下牛肉回锅。","加蚝油、盐、香菜段，大火快速翻炒10秒即可。"],k:"牛肉逆纹切，大火快炒不超过30秒，否则老；香菜最后放。"},
+      {n:"青椒炒牛肉",m:[{name:"牛肉",amount:"150g"},{name:"青椒",amount:"2个（约150g）"}],s:"参考家常菜谱",t:"20分钟",z:["牛里脊肉 150g","青椒 2个（约150g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["牛肉逆纹切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1勺食用油锁水，腌10分钟。","青椒切块，姜蒜切片。","热锅下油，下牛肉片大火滑炒至变色（约20-30秒），盛出。","锅中留底油，爆香姜蒜，下青椒块大火翻炒至断生（约1分钟）。","倒入牛肉，加蚝油、盐，快速炒匀即可。"],k:"牛肉不要炒老；青椒大火快炒保持脆嫩。"},
+      {n:"芹菜炒牛肉",m:[{name:"牛肉",amount:"150g"},{name:"芹菜",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["牛里脊肉 150g","芹菜 200g"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["牛肉逆纹切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1勺食用油锁水，腌10分钟。","芹菜去叶切段（约4cm长）。","热锅下油，下牛肉片大火滑炒至变色（约20-30秒），盛出。","锅中留底油，爆香姜蒜，下芹菜段大火翻炒至断生（约1分钟）。","倒入牛肉，加蚝油、盐，快速炒匀即可。"],k:"芹菜大火快炒保持脆嫩；牛肉不要炒老。"},
+      {n:"香菜炒牛肉",m:[{name:"牛肉",amount:"150g"},{name:"香菜",amount:"1大把（约100g）"}],s:"参考家常菜谱",t:"20分钟",z:["牛里脊肉 150g","香菜 1大把（约100g）"],f:["大蒜 3瓣（切片）","生姜 3片"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["牛肉逆纹切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1勺食用油锁水，腌10分钟。","香菜洗净切段（约4cm长）。","热锅下油，下牛肉片大火滑炒至变色（约20-30秒），盛出。","锅中留底油，爆香姜蒜，下香菜段大火快速翻炒约20秒。","倒入牛肉，加蚝油、盐，快速炒匀即可。"],k:"香菜不能久炒，断生即可；牛肉不要炒老。"},
+      {n:"杏鲍菇炒牛肉",m:[{name:"牛肉",amount:"150g"},{name:"杏鲍菇",amount:"2根（约200g）"}],s:"参考家常菜谱",t:"20分钟",z:["牛里脊肉 150g","杏鲍菇 2根（约200g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["牛肉逆纹切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1勺食用油锁水，腌10分钟。","杏鲍菇切厚片（约0.5cm）。","热锅下油，下牛肉片大火滑炒至变色（约20-30秒），盛出。","锅中留底油，下杏鲍菇片中火煸炒至表面微黄变软（约3分钟）。","倒入牛肉，加蚝油、盐，快速炒匀即可。"],k:"杏鲍菇要干煸出水分再炒；牛肉不要炒老。"},
+      {n:"黑椒牛肉",m:[{name:"牛肉",amount:"150g"},{name:"彩椒",amount:"红黄各半个（约100g）"},{name:"洋葱",amount:"半个（约80g）"}],s:"参考家常菜谱",t:"20分钟",z:["牛里脊肉 150g","彩椒（红黄）各半个（约100g）","洋葱 半个（约80g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、黑胡椒粉 1小勺、食用油 1勺","炒制：食用油 2勺、黑胡椒酱 1勺、盐 1小勺"],o:["牛肉切丁（约2cm见方），加生抽、料酒、淀粉、黑胡椒粉抓匀，加1勺食用油锁水，腌10分钟。","彩椒、洋葱切块。","热锅下油，下牛肉丁中火煎至表面焦黄（约1分钟），盛出。","锅中留底油，爆香蒜片，下洋葱块炒软，再下彩椒块翻炒至断生（约1分钟）。","倒入牛肉，加黑胡椒酱、盐，快速炒匀即可。"],k:"牛肉切丁不要太小；黑胡椒酱是主味。"},
+      {n:"泡椒牛肉",m:[{name:"牛肉",amount:"150g"},{name:"泡椒",amount:"8-10个"},{name:"仔姜",amount:"1小块（约50g）"}],s:"参考家常菜谱",t:"20分钟",z:["牛里脊肉 150g","泡椒 8-10个","仔姜 1小块（约50g）"],f:["大蒜 2瓣（切片）"],l:["腌制：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许、食用油 1勺、泡椒水 1勺","炒制：食用油 2勺、盐 1小勺、蚝油 1勺"],o:["牛肉逆纹切薄片，加生抽、料酒、淀粉、白胡椒粉抓匀，加1勺食用油和泡椒水锁水，腌10分钟。","泡椒切段，仔姜切丝。","热锅下油，下牛肉片大火滑炒至变色（约20-30秒），盛出。","锅中留底油，爆香蒜片，下泡椒段、仔姜丝大火翻炒出香味（约1分钟）。","倒入牛肉，加蚝油、盐，快速炒匀即可。"],k:"泡椒水是灵魂；仔姜丝要切细。"},
+      {n:"番茄炖牛腩（高压锅版）",m:[{name:"牛腩",amount:"300g"},{name:"西红柿",amount:"3个（约400g）"}],s:"参考家常菜谱",t:"25分钟（高压锅）",z:["牛腩 300g","西红柿 3个（约400g）"],f:["生姜 3片","大蒜 3瓣（切片）","小葱 1根（切段）"],l:["焯水：料酒 1勺、生姜 2片","炖煮：生抽 2勺、蚝油 1勺、番茄酱 1勺、盐 1小勺、冰糖 1小块","食用油 2勺"],o:["牛腩切块（约3cm），冷水下锅加料酒、姜片焯水去血沫，捞出沥干。","西红柿切块（一半铺底，一半最后放）。","热锅下油，爆香姜蒜，下牛腩煸炒至表面微焦（约3分钟）。","将一半西红柿块和牛腩一起放入高压锅，加水没过食材，加生抽、蚝油、番茄酱、冰糖。","高压锅上汽后压20分钟。","开盖后倒入另一半西红柿块，中火煮5分钟，加盐调味，撒葱段即可。"],k:"高压锅是效率核心；番茄分两次放。"},
+      {n:"土豆炖牛腩（高压锅版）",m:[{name:"牛腩",amount:"300g"},{name:"土豆",amount:"2个（约300g）"}],s:"参考家常菜谱",t:"25分钟（高压锅）",z:["牛腩 300g","土豆 2个（约300g）"],f:["生姜 3片","大蒜 3瓣（切片）","小葱 1根（切段）"],l:["焯水：料酒 1勺、生姜 2片","炖煮：生抽 2勺、老抽 半勺、蚝油 1勺、冰糖 1小块、盐 1小勺","食用油 2勺"],o:["牛腩切块，冷水下锅加料酒、姜片焯水去血沫，捞出沥干。","土豆去皮切滚刀块。","牛腩放入高压锅，加生抽、老抽、蚝油、冰糖、姜蒜和水没过食材，压20分钟。","开盖后下土豆块，再压5分钟（或开盖中火煮10分钟）。","加盐调味，大火收汁撒葱段即可。"],k:"土豆要最后放，否则煮烂成泥；高压锅20分钟足够软烂。"},
+      {n:"红烧牛肉（高压锅版）",m:[{name:"牛腩",amount:"300g"}],s:"参考家常菜谱",t:"25分钟（高压锅）",z:["牛腩 300g"],f:["生姜 3片","大蒜 3瓣（切片）","八角 1个","桂皮 1小块","香叶 2片","干辣椒 2个","小葱 1根（切段）"],l:["焯水：料酒 1勺、生姜 2片","炖煮：生抽 2勺、老抽 1勺、蚝油 1勺、冰糖 1小块、盐 1小勺","食用油 2勺"],o:["牛腩切块，冷水下锅加料酒、姜片焯水去血沫，捞出沥干。","热锅下油，下姜蒜、八角、桂皮、香叶、干辣椒炒香（约1分钟）。","下牛腩翻炒2分钟，加生抽、老抽、蚝油、冰糖炒匀上色。","倒入高压锅，加水没过食材，压20分钟。","开盖加盐调味，大火收汁撒葱段即可。"],k:"香料先炒香再下肉；高压锅20分钟软烂。"}
+    ]
+  },
+  // ============================================================
+  // 九、豆制品 — 16道
+  // ============================================================
+  {
+    cat: "豆制品",
+    items: [
+      {n:"麻婆豆腐",m:[{name:"豆腐",amount:"1盒（约300g）"},{name:"猪肉",amount:"50g（肉馅，可选）"}],s:"参考家常菜谱",t:"15分钟",z:["嫩豆腐 1盒（约300g）","猪肉末 50g（可选）"],f:["大蒜 3瓣（切末）","生姜 2片（切末）","小葱 1根（切葱花）","花椒粉 1小勺"],l:["腌制肉末：生抽 1勺、料酒 1勺","碗汁：豆瓣酱 1勺、生抽 1勺、老抽 半勺、白糖 1小勺、淀粉 1小勺、清水 半碗","食用油 3勺"],o:["豆腐切小块（约2cm），开水焯烫1分钟捞出。","热锅下油，下肉末炒散至变色，加豆瓣酱小火炒出红油，爆香姜蒜末。","加一碗水烧开，下豆腐块轻轻推匀。","淋入碗汁，小火煮2分钟轻轻推匀。","出锅装盘，撒花椒粉和葱花即可。"],k:"豆腐焯水后不易碎；全程小火推；花椒粉出锅前撒。"},
+      {n:"家常豆腐",m:[{name:"豆腐",amount:"1块（约300g，老豆腐）"},{name:"青椒",amount:"1个"},{name:"木耳",amount:"少许"},{name:"胡萝卜",amount:"少许"}],s:"参考家常菜谱",t:"20分钟",z:["老豆腐 1块（约300g）","青椒 1个（切块）","木耳 少许（泡发）","胡萝卜 少许（切片）"],f:["大蒜 2瓣（切片）"],l:["碗汁：生抽 2勺、蚝油 1勺、老抽 半勺、白糖 1小勺、淀粉 1小勺、清水 半碗","食用油 3勺"],o:["老豆腐切厚片（约1cm），吸干水分。","热锅下油，下豆腐片中火煎至两面金黄（每面约3分钟），盛出。","锅中留底油，爆香蒜片，下青椒块、胡萝卜片、木耳翻炒断生（约1分钟）。","倒入煎好的豆腐，淋入碗汁，中火煮2分钟入味，大火收汁即可。"],k:"豆腐煎到两面金黄才香；配菜不要炒太久。"},
+      {n:"香煎豆腐",m:[{name:"豆腐",amount:"1块（约300g，老豆腐）"}],s:"参考家常菜谱",t:"15分钟",z:["老豆腐 1块（约300g）"],f:["大蒜 2瓣（切末）","小葱 1根（切葱花）"],l:["碗汁：生抽 2勺、蚝油 1勺、白糖 1小勺、清水 半碗","食用油 3勺、盐 1小勺"],o:["老豆腐切厚片，吸干水分。","热锅下油，下豆腐片中火煎至两面金黄。","淋入碗汁，小火煮2分钟入味。","大火收汁，撒蒜末、葱花即可。"],k:"豆腐要煎到两面金黄才香；汁不用收太干。"},
+      {n:"白菜炖豆腐",m:[{name:"豆腐",amount:"1块（约300g，老豆腐）"},{name:"大白菜",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["老豆腐 1块（约300g）","大白菜 200g"],f:["生姜 3片","大蒜 2瓣（切片）","小葱 1根（切段）"],l:["碗汁：生抽 2勺、蚝油 1勺、清水 1碗","食用油 2勺、盐 1小勺"],o:["老豆腐切厚片，白菜切块。","热锅下油，下豆腐片中火煎至两面金黄，盛出。","锅中留底油，爆香姜蒜，下白菜块翻炒至变软（约3分钟）。","倒入煎好的豆腐，加碗汁和水，中火炖5分钟。","加盐调味，大火收汁撒葱段。"],k:"白菜炖到软烂才好吃；豆腐先煎再炖更香。"},
+      {n:"蒜苗炒豆干",m:[{name:"豆干",amount:"3块（约150g）"},{name:"蒜苗",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["白豆干 3块（约150g）","蒜苗 200g"],f:["大蒜 2瓣（切片）"],l:["食用油 2勺、盐 1小勺、生抽 1勺、蚝油 1勺"],o:["豆干切条（约0.5cm），蒜苗切段（约4cm），蒜白和蒜叶分开。","热锅下油，下豆干条中火煸炒至表面微黄（约2分钟）。","下蒜白先炒1分钟，再下蒜叶翻炒至断生（约30秒）。","加生抽、蚝油、盐调味，快速炒匀即可。"],k:"豆干要煸炒出焦香；蒜白和蒜叶分开下锅。"},
+      {n:"芹菜炒香干",m:[{name:"香干",amount:"3块（约150g）"},{name:"芹菜",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["香干 3块（约150g）","芹菜 200g"],f:["大蒜 2瓣（切片）"],l:["食用油 2勺、盐 1小勺、生抽 1勺、蚝油 1勺"],o:["香干切条（约0.5cm），芹菜去叶切段（约4cm）。","热锅下油，下香干条中火煸炒至表面微黄（约2分钟）。","下芹菜段大火翻炒至断生（约1分钟）。","加生抽、蚝油、盐调味，快速炒匀即可。"],k:"香干煸炒出焦香；芹菜大火快炒保持脆嫩。"},
+      {n:"青椒炒香干",m:[{name:"香干",amount:"3块（约150g）"},{name:"青椒",amount:"2个（约150g）"}],s:"参考家常菜谱",t:"15分钟",z:["香干 3块（约150g）","青椒 2个（约150g）"],f:["大蒜 2瓣（切片）"],l:["食用油 2勺、盐 1小勺、生抽 1勺、蚝油 1勺"],o:["香干切条，青椒切丝。","热锅下油，下香干条中火煸炒至表面微黄（约2分钟）。","下青椒丝大火翻炒至断生（约1分钟）。","加生抽、蚝油、盐调味，快速炒匀即可。"],k:"香干煸炒出焦香；青椒大火快炒保持脆嫩。"},
+      {n:"腐竹炒木耳",m:[{name:"腐竹",amount:"50g（干）"},{name:"木耳",amount:"10g（干）"}],s:"参考家常菜谱",t:"20分钟（含泡发）",z:["干腐竹 50g（泡发后约150g）","干木耳 10g（泡发后约100g）"],f:["大蒜 2瓣（切片）","青蒜 1根（切段）"],l:["食用油 2勺、盐 1小勺、生抽 1勺、蚝油 1勺"],o:["腐竹、木耳温水泡发（腐竹约1小时，木耳20分钟）。","腐竹切段（约4cm），木耳撕小朵，焯水1分钟捞出。","热锅下油，爆香蒜片，下腐竹段、木耳大火翻炒约2分钟。","加生抽、蚝油、盐调味，撒青蒜段炒匀即可。"],k:"腐竹泡发时间要够；木耳焯水去土腥味。"},
+      {n:"红烧素鸡",m:[{name:"素鸡",amount:"1条（约200g）"}],s:"参考家常菜谱",t:"15分钟",z:["素鸡 1条（约200g）"],f:["大蒜 2瓣（切片）","小葱 1根（切段）"],l:["碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、白糖 1小勺、清水 半碗","食用油 3勺"],o:["素鸡切厚片（约1.5cm）。","热锅下油，下素鸡片中火煎至两面金黄（表皮起泡，每面约3分钟）。","爆香蒜片，淋入碗汁，加盖中火焖煮3分钟。","开盖大火收汁，撒葱段即可。"],k:"素鸡煎到表皮起泡才吸汁；焖煮时间不要太长。"},
+      {n:"娃娃菜焖豆泡",m:[{name:"油豆泡",amount:"100g"},{name:"娃娃菜",amount:"1颗（约200g）"}],s:"参考家常菜谱",t:"15分钟",z:["油豆泡 100g","娃娃菜 1颗（约200g）"],f:["大蒜 2瓣（切片）","小葱 1根（切段）"],l:["碗汁：生抽 2勺、蚝油 1勺、清水 半碗","食用油 2勺、盐 1小勺"],o:["油豆泡对半切开，娃娃菜切段。","热锅下油，爆香蒜片，下娃娃菜翻炒至变软（约2分钟）。","下油豆泡，淋入碗汁，加盖中火焖煮3分钟。","开盖加盐调味，大火收汁撒葱段。"],k:"豆泡切开更入味；娃娃菜炒软再焖。"},
+      {n:"千张炒肉丝",m:[{name:"千张",amount:"150g"},{name:"猪肉",amount:"100g"}],s:"参考家常菜谱",t:"20分钟",z:["千张（干豆腐）150g","猪里脊肉 100g"],f:["大蒜 2瓣（切片）","小葱 1根（切段）"],l:["腌制肉丝：生抽 1勺、料酒 1勺、淀粉 1小勺、白胡椒粉 少许","炒制：食用油 2勺、盐 1小勺、蚝油 1勺、老抽 半勺"],o:["里脊肉切丝，加生抽、料酒、淀粉、白胡椒粉抓匀腌10分钟。","千张切丝（约0.5cm），开水焯烫1分钟去豆腥，捞出沥干。","热锅下油，滑炒肉丝至变色盛出。","锅中留底油，爆香蒜片，下千张丝中火翻炒2分钟（炒出豆香）。","倒入肉丝，加蚝油、盐、老抽，快速翻炒均匀，撒葱段即可。"],k:"千张焯水去豆腥；炒千张时火不能太小，炒出焦香。"},
+      {n:"韭菜炒千张",m:[{name:"千张",amount:"150g"},{name:"韭菜",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["千张（干豆腐）150g","韭菜 200g"],f:["大蒜 2瓣（切片）"],l:["食用油 2勺、盐 1小勺、生抽 1勺"],o:["千张切丝（约0.5cm），开水焯烫1分钟捞出。","韭菜洗净切段（约4cm），根和叶分开放。","热锅下油，爆香蒜片，下千张丝中火翻炒1分钟。","下韭菜根先炒20秒，再下韭菜叶大火快速翻炒约30秒，加盐、生抽调味，炒匀即可。"],k:"韭菜不能久炒；千张先炒出豆香。"},
+      {n:"尖椒干豆腐",m:[{name:"干豆腐",amount:"200g"},{name:"尖椒",amount:"2个（约120g）"}],s:"参考家常菜谱",t:"15分钟",z:["干豆腐（千张）200g","尖椒 2个（约120g）"],f:["大蒜 2瓣（切片）","生姜 3片"],l:["食用油 2勺、盐 1小勺、蚝油 1勺、生抽 1勺"],o:["干豆腐切菱形片或条，开水焯烫1分钟捞出。","尖椒去蒂去籽切块或丝。","热锅下油，爆香姜蒜，下尖椒块大火翻炒至断生（约1分钟）。","下干豆腐片翻炒2分钟，加蚝油、盐、生抽调味，炒匀即可。"],k:"尖椒大火快炒保持脆嫩；干豆腐要先焯水去豆腥。"},
+      {n:"腐竹烧肉",m:[{name:"腐竹",amount:"50g（干）"},{name:"五花肉",amount:"150g"}],s:"参考家常菜谱",t:"20分钟",z:["干腐竹 50g（泡发后约150g）","五花肉 150g"],f:["生姜 3片","大蒜 2瓣（切片）","小葱 1根（切段）"],l:["腌制肉：料酒 1勺、生抽 1勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、白糖 1小勺、清水 半碗","食用油 2勺"],o:["腐竹温水泡发（约1小时），切段（约4cm），焯水1分钟捞出。","五花肉切薄片，加料酒、生抽抓匀腌5分钟。","热锅下油，下五花肉片中火煸炒至表面微黄出油（约3分钟）。","爆香姜蒜，下腐竹段翻炒2分钟。","淋入碗汁，加盖中火焖煮3分钟，开盖大火收汁，撒葱段即可。"],k:"五花肉煸出油再下腐竹；腐竹吸汁后口感软糯。"},
+      {n:"豆皮卷肉",m:[{name:"油豆皮",amount:"2张"},{name:"猪肉",amount:"150g（肉馅）"}],s:"参考家常菜谱",t:"20分钟",z:["油豆皮 2张","猪肉馅 150g"],f:["生姜 2片（切末）","小葱 1根（切葱花）","大蒜 2瓣（切末）"],l:["肉馅调味：生抽 1勺、料酒 1勺、淀粉 1勺、盐 1小勺、白胡椒粉 少许、鸡蛋 半个（或蛋清）","碗汁：生抽 2勺、蚝油 1勺、白糖 1小勺、清水 半碗","食用油 2勺"],o:["肉馅加生抽、料酒、淀粉、盐、白胡椒粉、蛋清朝一个方向搅打上劲，加入姜末、葱花拌匀。","油豆皮切成合适大小（约10×15cm），将肉馅铺在豆皮上卷成卷，收口处抹少许水淀粉封口。","热锅下油，将豆皮卷收口朝下放入锅中，中火煎至两面金黄（每面约3分钟）。","淋入碗汁，加盖中火焖煮5分钟，开盖大火收汁即可（出锅后可切段装盘）。"],k:"肉馅要搅打上劲；卷紧是关键，收口用淀粉封住。"},
+      {n:"油豆皮炒青菜",m:[{name:"油豆皮",amount:"100g"},{name:"小白菜",amount:"200g"}],s:"参考家常菜谱",t:"10分钟",z:["油豆皮 100g","小白菜（或油菜）200g"],f:["大蒜 2瓣（切片）"],l:["食用油 2勺、盐 1小勺、蚝油 1勺"],o:["油豆皮温水泡软（约10分钟），切宽条。","小白菜洗净切段（约4cm）。","热锅下油，爆香蒜片，下小白菜大火翻炒至断生（约1分钟）。","下油豆皮翻炒1分钟，加蚝油、盐调味，炒匀即可。"],k:"油豆皮泡软时间短；青菜大火快炒保持脆嫩。"}
+    ]
+  },
+  // ============================================================
+  // 十、凉菜 — 12道
+  // ============================================================
+  {
+    cat: "凉菜",
+    items: [
+      {n:"凉拌鸡丝",m:[{name:"鸡胸肉",amount:"150g"},{name:"黄瓜",amount:"半根"},{name:"香菜",amount:"1小把"}],s:"参考家常菜谱",t:"15分钟",z:["鸡胸肉 150g","黄瓜 半根（切丝）","香菜 1小把（切段）"],f:[],l:["煮鸡胸：料酒 1勺、生姜 2片","拌料：生抽 2勺、香醋 1勺、蒜末 2瓣、辣椒油 1勺、香油 1小勺、盐 1小勺"],o:["鸡胸肉冷水下锅，加料酒、姜片，大火煮开后转中火煮8分钟，关火焖5分钟。","取出鸡胸肉放凉，撕成丝。","黄瓜切丝，香菜切段，与鸡丝混合。","所有拌料调匀成酱汁，淋在鸡丝上拌匀即可。"],k:"鸡胸煮后焖5分钟是关键，否则干柴；辣椒油要现泼的才香。"},
+      {n:"口水鸡（凉拌）",m:[{name:"鸡腿肉",amount:"1只（约200g，去骨）"},{name:"黄瓜",amount:"半根"},{name:"花生碎",amount:"2勺"},{name:"白芝麻",amount:"1勺"},{name:"香菜",amount:"少许"}],s:"参考家常菜谱",t:"20分钟",z:["鸡腿肉 1只（约200g，去骨）"],f:["黄瓜 半根（切丝）","花生碎 2勺","白芝麻 1勺","香菜 少许"],l:["煮鸡：料酒 1勺、生姜 3片、花椒 十几粒","红油料汁：辣椒油 3勺、生抽 2勺、香醋 1勺、白糖 1小勺、蒜末 2瓣、盐 1小勺、花椒粉 少许"],o:["鸡腿肉冷水下锅，加料酒、姜片、花椒，大火煮开后转中火煮10分钟，关火焖5分钟。","取出过冰水，切块或撕成条。","黄瓜切丝铺盘底，码上鸡腿肉。","所有红油料汁调匀，淋在鸡肉上，撒花生碎、白芝麻、香菜即可。"],k:"煮鸡腿不要煮太久；过冰水后肉质更紧实。"},
+      {n:"白灼基围虾",m:[{name:"基围虾",amount:"250g"}],s:"参考家常菜谱",t:"10分钟",z:["基围虾 250g"],f:["生姜 3片","大葱 1段（切段）"],l:["蘸料：生抽 2勺、香醋 1勺、蒜末 1瓣、芝麻油 几滴、小米椒 1个（可选）","煮虾：料酒 1勺、盐 1小勺"],o:["锅中烧水，水开后放入姜片、葱段、料酒和盐。","倒入洗净的虾，大火煮至虾身变红弯曲（约2-3分钟）。","捞出虾，过冰水或直接装盘。","蘸料混合均匀即可蘸食。"],k:"虾煮到变红弯曲即可；过冰水更Q弹。"},
+      {n:"凉拌牛肉",m:[{name:"牛肉",amount:"200g（牛腱子）"},{name:"黄瓜",amount:"半根"},{name:"香菜",amount:"1小把"}],s:"参考家常菜谱",t:"30分钟（含卤制）",z:["牛腱子肉 200g"],f:["黄瓜 半根（切丝）","香菜 1小把（切段）","花生碎 2勺"],l:["卤牛肉：生抽 2勺、老抽 1勺、料酒 1勺、八角 1个、桂皮 1小块、香叶 2片、生姜 3片","拌料：生抽 2勺、香醋 1勺、蒜末 2瓣、辣椒油 1勺、香油 1小勺、盐 1小勺"],o:["牛腱子冷水下锅焯水去血沫，放入高压锅加卤料和水，压20分钟（或普通锅煮40分钟）。","取出放凉，切薄片（逆纹切）。","黄瓜切丝铺底，码上牛肉片。","所有拌料调匀成酱汁，淋在牛肉上，撒香菜、花生碎即可。"],k:"牛腱子煮到软烂但仍有嚼劲；切薄片是关键。"},
+      {n:"皮蛋豆腐（凉拌）",m:[{name:"豆腐",amount:"1盒（约300g，嫩豆腐）"},{name:"皮蛋",amount:"1个"}],s:"参考家常菜谱",t:"10分钟",z:["嫩豆腐 1盒（约300g）","皮蛋 1个"],f:["榨菜末 1勺","香菜 少许","花生碎 1勺"],l:["拌料：生抽 2勺、香醋 1勺、蒜末 1瓣、香油 1小勺、辣椒油 1勺（可选）"],o:["嫩豆腐从盒中取出，倒扣在盘中。","皮蛋去壳切丁（刀沾水不粘皮蛋），铺在豆腐上。","所有拌料调匀成酱汁，淋在皮蛋和豆腐上。","撒榨菜末、花生碎、香菜即可。"],k:"豆腐脱模要完整；皮蛋切丁要均匀；榨菜末增加口感层次。"},
+      {n:"凉拌腐竹",m:[{name:"腐竹",amount:"50g（干）"},{name:"黄瓜",amount:"半根"},{name:"香菜",amount:"1小把"}],s:"参考家常菜谱",t:"20分钟（含泡发）",z:["干腐竹 50g（泡发后约150g）"],f:["黄瓜 半根（切丝）","香菜 1小把（切段）","花生碎 2勺"],l:["拌料：生抽 2勺、香醋 1勺、蒜末 2瓣、辣椒油 1勺、香油 1小勺、盐 1小勺"],o:["腐竹用温水泡发（约1小时），切段（约4cm），焯水1分钟捞出过凉。","黄瓜切丝铺底，码上腐竹段。","所有拌料调匀成酱汁，淋在腐竹上。","撒香菜、花生碎即可。"],k:"腐竹泡发时间要够；焯水后过凉更爽脆。"},
+      {n:"泰和萝卜",m:[{name:"白萝卜",amount:"1根（约300g）"}],s:"参考家常菜谱",t:"20分钟（不含腌制时间）",z:["白萝卜 1根（约300g）"],f:["大蒜 2瓣（切片）","小米椒 2个（切圈）"],l:["腌制：盐 2小勺","料汁：白糖 2勺、白醋 3勺、生抽 1勺、凉开水 半碗"],o:["白萝卜去皮，切薄片或条，撒盐腌制30分钟，挤去水分。","料汁调匀（糖和醋按1:1.5比例），加入蒜片、小米椒。","将腌好的萝卜放入料汁中，冷藏腌制2小时以上即可。"],k:"萝卜要先腌去生水；冷藏后口感更脆。"},
+      {n:"凉拌毛豆",m:[{name:"毛豆",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["毛豆 200g"],f:["大蒜 2瓣（切末）","干辣椒 2个（切段）"],l:["煮毛豆：盐 1小勺、油 几滴","拌料：生抽 2勺、香醋 1勺、辣椒油 1勺、花椒油 1小勺、盐 1小勺"],o:["毛豆剪去两头，洗净。","锅中烧水，水开后下毛豆，加盐和几滴油，煮5-8分钟（不要盖盖）。","捞出过凉水，沥干。","所有拌料调匀，加入蒜末、干辣椒段，淋在毛豆上拌匀即可。"],k:"毛豆剪两头更入味；煮时不要盖盖保持绿色。"},
+      {n:"凉拌藕片",m:[{name:"莲藕",amount:"1节（约200g）"}],s:"参考家常菜谱",t:"15分钟",z:["莲藕 1节（约200g）"],f:["大蒜 2瓣（切末）","干辣椒 2个（切段）","香菜 少许"],l:["煮藕：白醋 1勺","拌料：生抽 2勺、香醋 1勺、辣椒油 1勺、糖 1小勺、盐 1小勺"],o:["莲藕去皮切薄片（约0.3cm），冲洗去淀粉。","锅中烧水，水开后下藕片，加白醋煮1-2分钟，捞出过凉水。","所有拌料调匀，加入蒜末、干辣椒段，淋在藕片上拌匀。","撒香菜即可。"],k:"藕片加白醋煮防变色；过凉水更脆。"},
+      {n:"凉拌海带丝",m:[{name:"干海带丝",amount:"50g"}],s:"参考家常菜谱",t:"20分钟",z:["干海带丝 50g（或鲜海带丝 200g）"],f:["大蒜 2瓣（切末）","干辣椒 2个（切段）"],l:["拌料：生抽 2勺、香醋 1勺、辣椒油 1勺、香油 1小勺、盐 1小勺、白糖 1小勺"],o:["干海带丝温水泡发（约30分钟），洗净。","锅中烧水，水开后下海带丝煮3-5分钟，捞出过凉水。","所有拌料调匀，加入蒜末、干辣椒段，淋在海带丝上拌匀即可。"],k:"海带丝不要煮太久；过凉水更爽口。"},
+      {n:"麻酱菠菜",m:[{name:"菠菜",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["菠菜 200g"],f:["大蒜 2瓣（切末）","白芝麻 1勺"],l:["煮菠菜：盐 1小勺、油 几滴","麻酱汁：芝麻酱 2勺、生抽 1勺、香醋 1勺、蒜末 1瓣、白糖 1小勺、温水 2勺"],o:["菠菜洗净去根。","锅中烧水，水开后下菠菜，加盐和几滴油，焯水30秒，捞出过凉水，挤干水分。","芝麻酱用温水调开，加生抽、香醋、蒜末、白糖调匀。","菠菜装盘，淋上麻酱汁，撒白芝麻即可。"],k:"菠菜焯水时间要短；麻酱要用温水调开不能有颗粒。"},
+      {n:"凉拌蒜苗梗",m:[{name:"蒜苗梗",amount:"200g"}],s:"参考家常菜谱",t:"15分钟",z:["蒜苗梗 200g（去叶留梗）"],f:["大蒜 2瓣（切末）","干辣椒 2个（切段）"],l:["煮蒜苗：盐 1小勺、油 几滴","拌料：生抽 2勺、香醋 1勺、辣椒油 1勺、花椒油 1小勺、盐 1小勺"],o:["蒜苗梗洗净切段（约5cm），较粗的可对半剖开。","锅中烧水，水开后下蒜苗梗煮2-3分钟至断生，捞出过凉水。","所有拌料调匀，加入蒜末、干辣椒段，淋在蒜苗梗上拌匀即可。"],k:"蒜苗梗不要煮太久保持脆感；凉拌后冷藏更入味。"}
+    ]
+  },
+  // ============================================================
+  // 十一、经典大菜 — 12道
+  // ============================================================
+  {
+    cat: "经典大菜",
+    items: [
+      {n:"啤酒鸭",m:[{name:"鸭腿",amount:"1只（约300g）"},{name:"啤酒",amount:"1罐"}],s:"参考家常菜谱",t:"25分钟",z:["鸭腿 1只（约300g，切块）","啤酒 1罐（330ml）"],f:["生姜 3片","大蒜 3瓣（切片）","干辣椒 2个（切段）","八角 1个","桂皮 1小块"],l:["焯水：料酒 1勺、生姜 2片","炖煮：啤酒 1罐、生抽 2勺、老抽 半勺、蚝油 1勺、冰糖 1小块、盐 1小勺","食用油 2勺"],o:["鸭腿切块，冷水下锅加料酒、姜片焯水去血沫，捞出沥干。","热锅下油，下鸭块中火煸炒至表面微黄出油（约4-5分钟）。","下姜蒜、干辣椒、八角、桂皮炒香。","倒入啤酒，加生抽、老抽、蚝油、冰糖，大火煮开后转中小火焖煮15分钟。","开盖加盐调味，大火收汁即可。"],k:"啤酒代替水是精华；鸭皮要煸出油再焖。"},
+      {n:"梅菜扣肉",m:[{name:"五花肉",amount:"200g"},{name:"梅干菜",amount:"50g（干）"}],s:"参考家常菜谱",t:"30分钟（蒸制）",z:["五花肉 200g","梅干菜 50g（干）"],f:["生姜 2片","小葱 1根（切段）"],l:["煮肉：料酒 1勺、生姜 2片","腌肉：老抽 1勺","碗汁：生抽 2勺、蚝油 1勺、白糖 1小勺、清水 半碗","食用油 2勺"],o:["五花肉整块冷水下锅，加料酒、姜片煮15分钟至七八分熟，捞出。","五花肉皮面用牙签扎孔，抹老抽上色，晾干（约10分钟）。","热锅下油，肉皮朝下中火煎至金黄起泡（约3分钟），捞出切片（约0.5cm厚）。","梅干菜温水泡软（约15分钟），洗净挤干。","肉片皮朝下码入碗中，铺上梅干菜，淋入碗汁，上锅大火蒸30分钟（或高压锅15分钟）。","取出倒扣盘中，撒葱段即可。"],k:"肉皮扎孔+抹老抽是起虎皮的关键；蒸的时间要够。"},
+      {n:"粉蒸肉",m:[{name:"五花肉",amount:"200g"},{name:"蒸肉米粉",amount:"50g"}],s:"参考家常菜谱",t:"25分钟（蒸制）",z:["五花肉 200g","蒸肉米粉 50g（超市有售）"],f:["红薯（或南瓜）100g","生姜 2片（切末）","小葱 1根（切葱花）"],l:["腌肉：生抽 2勺、老抽 半勺、料酒 1勺、蚝油 1勺、白糖 1小勺、白胡椒粉 少许、姜末 少许","其他：食用油 1勺"],o:["五花肉切薄片（约0.3cm），加生抽、老抽、料酒、蚝油、白糖、白胡椒粉、姜末抓匀，腌20分钟。","红薯去皮切块，铺在碗底。","腌好的肉片裹上蒸肉米粉，码在红薯上。","上锅大火蒸40分钟（或高压锅15分钟）。","取出撒葱花即可。"],k:"肉片切薄更易入味；蒸肉米粉裹均匀；红薯垫底吸油。"},
+      {n:"墨鱼烧肉",m:[{name:"五花肉",amount:"200g"},{name:"干墨鱼",amount:"1只（约50g）"}],s:"参考家常菜谱",t:"25分钟",z:["五花肉 200g","干墨鱼 1只（约50g）"],f:["生姜 3片","大蒜 2瓣（切片）","小葱 1根（切段）"],l:["五花肉焯水：料酒 1勺","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、冰糖 1小块、清水 半碗","食用油 2勺、盐 1小勺"],o:["干墨鱼温水泡发（约2小时），去骨切条。","五花肉切块，冷水下锅加料酒焯水去血沫，捞出沥干。","热锅下油，下五花肉块中火煸炒至表面微黄出油（约3分钟）。","爆香姜蒜，下墨鱼条翻炒2分钟。","淋入碗汁，加水没过食材一半，大火煮开后转中小火焖煮20分钟。","开盖加盐调味，大火收汁，撒葱段即可。"],k:"墨鱼泡发时间要够；墨鱼自带咸鲜味，盐少放。"},
+      {n:"水煮鱼",m:[{name:"草鱼（或黑鱼）",amount:"200g（去骨切片）"},{name:"豆芽",amount:"100g"},{name:"生菜",amount:"2片"}],s:"参考家常菜谱",t:"25分钟",z:["草鱼（或黑鱼）200g（去骨切片）","豆芽 100g","生菜 2片"],f:["大蒜 3瓣（切末）","生姜 3片","干辣椒 1大把（切段）","花椒 1勺","小葱 1根（切段）"],l:["鱼片腌制：蛋清 半个、料酒 1勺、淀粉 1小勺、盐 1小勺、白胡椒粉 少许","汤底：食用油 3勺、豆瓣酱 1勺、火锅底料 1小块、生抽 1勺、清水 500ml","泼油：食用油 3勺（烧热泼）"],o:["鱼片用蛋清、料酒、淀粉、盐、白胡椒粉抓匀，腌15分钟。","豆芽、生菜焯水断生，铺在碗底。","热锅下油，下姜蒜、豆瓣酱、火锅底料炒出红油，加水烧开。","水开后下鱼片，大火煮至鱼片变白（约30秒），连汤带鱼倒入铺了菜的碗中。","鱼面上铺干辣椒段、花椒、蒜末，烧热3勺油浇在上面爆香，撒葱段即可。"],k:"鱼片腌蛋清更嫩；煮鱼片时间不超过30秒；泼油是灵魂。"},
+      {n:"酸菜鱼",m:[{name:"草鱼（或黑鱼）",amount:"200g（去骨切片）"},{name:"酸菜",amount:"150g"}],s:"参考家常菜谱",t:"25分钟",z:["草鱼（或黑鱼）200g（去骨切片）","酸菜 150g"],f:["大蒜 3瓣（切末）","生姜 3片","干辣椒 5个（切段）","花椒 1小勺","小葱 1根（切段）"],l:["鱼片腌制：蛋清 半个、料酒 1勺、淀粉 1小勺、盐 1小勺、白胡椒粉 少许","汤底：食用油 2勺、泡椒 3个（切段）、生抽 1勺、白醋 1勺、清水 500ml","泼油：食用油 2勺（烧热泼）"],o:["鱼片用蛋清、料酒、淀粉、盐、白胡椒粉抓匀，腌15分钟。","酸菜洗净切段，泡椒切段。","热锅下油，下姜蒜、泡椒、干辣椒爆香，下酸菜炒出香味（约2分钟）。","加水烧开，加生抽、白醋调味，煮3分钟让酸菜出味。","下鱼片，大火煮至鱼片变白（约30秒），连汤带鱼倒入碗中。","鱼面上撒蒜末、干辣椒段、花椒，烧热2勺油浇在上面，撒葱段即可。"],k:"酸菜要炒出香味再加水；鱼片煮的时间不超过30秒。"},
+      {n:"剁椒鱼头",m:[{name:"鱼头",amount:"半个（约400g）"},{name:"剁椒",amount:"3勺"}],s:"参考家常菜谱",t:"20分钟",z:["鱼头（鳙鱼头）半个（约400g）","剁椒 3勺（超市有售）"],f:["生姜 3片（切丝）","大蒜 3瓣（切末）","小葱 1根（切段）"],l:["腌制：料酒 1勺、盐 1小勺","蒸制：蒸鱼豉油 2勺、蚝油 1勺、食用油 2勺"],o:["鱼头处理干净，对半切开（不要切断），抹料酒和盐腌10分钟。","盘底铺姜丝，放上鱼头，鱼身上铺剁椒、蒜末。","淋蒸鱼豉油、蚝油，上锅大火蒸10-12分钟。","取出撒葱段，烧热2勺油浇在上面即可。"],k:"鱼头一定要新鲜；蒸的时间不要过长；浇热油是点睛之笔。"},
+      {n:"毛血旺",m:[{name:"鸭血",amount:"1盒（约200g）"},{name:"毛肚",amount:"100g"},{name:"午餐肉",amount:"100g"},{name:"豆芽",amount:"100g"}],s:"参考家常菜谱",t:"25分钟",z:["鸭血 1盒（约200g）","毛肚 100g","午餐肉 100g","豆芽 100g"],f:["大蒜 3瓣（切末）","生姜 3片","干辣椒 1大把（切段）","花椒 1勺","小葱 1根（切段）"],l:["汤底：食用油 3勺、豆瓣酱 1勺、火锅底料 1小块、生抽 1勺、清水 500ml","泼油：食用油 3勺（烧热泼）"],o:["鸭血切厚片（约1cm），毛肚洗净切丝，午餐肉切片，豆芽焯水铺碗底。","热锅下油，下姜蒜、豆瓣酱、火锅底料炒出红油，加水烧开。","下鸭血、午餐肉煮3分钟，再下毛肚煮1分钟。","连汤带料倒入铺了豆芽的碗中。","鱼面上铺干辣椒段、花椒、蒜末，烧热3勺油浇在上面，撒葱段即可。"],k:"毛肚最后下，煮1分钟即可；泼油是灵魂。"},
+      {n:"余干辣椒炒肉",m:[{name:"五花肉",amount:"150g"},{name:"余干辣椒（或尖椒）",amount:"200g"}],s:"参考家常菜谱",t:"20分钟",z:["五花肉 150g","余干辣椒（或尖椒）200g"],f:["大蒜 3瓣（切片）","生姜 3片"],l:["腌制肉片：生抽 1勺、料酒 1勺","炒制：食用油 2勺、生抽 1勺、蚝油 1勺、盐 1小勺、白糖 1小勺"],o:["五花肉切薄片（约0.3cm），加生抽、料酒抓匀腌5分钟。","余干辣椒洗净切段（或拍一下）。","热锅下油，下五花肉片中火煸炒至表面微黄出油（约3分钟）。","爆香姜蒜，下辣椒段大火翻炒至断生（约2分钟，表面起皱）。","加生抽、蚝油、盐、白糖调味，快速炒匀即可。"],k:"五花肉煸出油才香；辣椒要炒到表面起皱才入味。"},
+      {n:"藜蒿炒腊肉",m:[{name:"藜蒿",amount:"200g"},{name:"腊肉",amount:"100g"}],s:"参考家常菜谱",t:"15分钟",z:["藜蒿 200g","腊肉 100g"],f:["大蒜 2瓣（切片）","干辣椒 2个（切段）"],l:["食用油 1勺、盐 1小勺（腊肉有咸味，盐少放）"],o:["腊肉温水泡10分钟去咸，切片（约0.3cm厚）。","藜蒿洗净切段（约4cm）。","热锅下油，下腊肉片中火煸炒至透明出油（约2分钟）。","爆香蒜片、干辣椒，下藜蒿段大火快速翻炒至断生（约1分钟）。","加盐调味，炒匀即可。"],k:"腊肉要先泡水去咸；藜蒿大火快炒保持脆嫩。"},
+      {n:"井冈烟笋",m:[{name:"五花肉",amount:"150g"},{name:"烟笋",amount:"100g（干）"}],s:"参考家常菜谱",t:"20分钟",z:["五花肉 150g","烟笋（干）100g"],f:["大蒜 2瓣（切片）","生姜 3片","干辣椒 2个（切段）"],l:["烟笋泡发：温水提前泡发（约2小时）","炒制：食用油 2勺、生抽 1勺、蚝油 1勺、盐 1小勺、白糖 1小勺"],o:["烟笋温水提前泡发（约2小时），洗净切丝或条。","五花肉切薄片，加生抽、料酒抓匀腌5分钟。","热锅下油，下五花肉片中火煸炒至表面微黄出油（约3分钟）。","爆香姜蒜、干辣椒，下烟笋大火翻炒3分钟（炒干水分）。","加生抽、蚝油、盐、白糖调味，炒匀即可。"],k:"烟笋泡发时间要够；炒干水分是关键，否则有酸味。"},
+      {n:"红烧鸭三件",m:[{name:"鸭头",amount:"1个"},{name:"鸭翅",amount:"2只"},{name:"鸭脚",amount:"2只"}],s:"参考家常菜谱",t:"25分钟",z:["鸭头 1个","鸭翅 2只","鸭脚 2只（约300g）"],f:["生姜 3片","大蒜 3瓣（切片）","八角 1个","桂皮 1小块","干辣椒 2个"],l:["焯水：料酒 1勺、生姜 2片","碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、冰糖 1小块、清水 半碗","食用油 2勺、盐 1小勺"],o:["鸭头、鸭翅、鸭脚洗净，冷水下锅加料酒、姜片焯水去血沫，捞出沥干。","热锅下油，下鸭三件中火煸炒至表面微黄（约4-5分钟）。","爆香姜蒜、八角、桂皮、干辣椒。","淋入碗汁，加水没过食材一半，大火煮开后转中小火焖煮20分钟。","开盖加盐调味，大火收汁即可。"],k:"焖煮时间要够，鸭三件才软烂；红烧酱汁要收浓。"}
+    ]
+  },
+  // ============================================================
+  // 十二、抚慰主食 — 13道
+  // ============================================================
+{
+  cat: "抚慰主食",
+  items: [
+    {
+      n: "皮蛋瘦肉粥",
+      comfort: "累了吧？来碗热粥，暖胃又暖心。",
+      m: [{name:"大米",amount:"半杯（约75g）"},{name:"皮蛋",amount:"1个"},{name:"猪里脊肉",amount:"50g"}],
+      s: "参考家常菜谱",
+      t: "25分钟",
+      z: ["大米 半杯（约75g）", "皮蛋 1个", "猪里脊肉 50g"],
+      f: ["生姜 2片（切丝）", "小葱 1根（切葱花）"],
+      l: ["盐 1小勺", "白胡椒粉 少许", "香油 几滴", "料酒 1勺"],
+      o: ["大米洗净，加足量水（约800ml），大火煮开后转小火煮20分钟至粥底绵稠。", "皮蛋切丁，猪里脊肉切丝，加料酒、少许盐、白胡椒粉抓匀腌5分钟。", "粥底煮好后，下姜丝、肉丝、皮蛋丁，中火煮3分钟。", "加盐、白胡椒粉调味，关火淋香油、撒葱花即可。"],
+      k: "粥底要煮到开花出米油；肉丝最后放，煮久了会老。"
+    },
+    {
+      n: "南瓜小米粥",
+      comfort: "甜甜的南瓜，软糯的小米，最适合没胃口的你。",
+      m: [{name:"小米",amount:"半杯（约75g）"},{name:"南瓜",amount:"200g"}],
+      s: "参考家常菜谱",
+      t: "25分钟",
+      z: ["小米 半杯（约75g）", "南瓜 200g"],
+      f: [],
+      l: ["盐 1小勺（或糖 1勺）"],
+      o: ["小米洗净，南瓜去皮切小块（约2cm）。", "锅中加水（约800ml），水开后下小米和南瓜，大火煮开后转小火煮20分钟。", "煮至小米开花、南瓜软烂，用勺子压碎南瓜。", "加盐或糖调味即可。"],
+      k: "南瓜要煮到软烂才能压碎；小米不要洗太久。"
+    },
+    {
+      n: "青菜瘦肉粥",
+      comfort: "清清淡淡，简简单单，吃下去胃里就踏实了。",
+      m: [{name:"大米",amount:"半杯（约75g）"},{name:"猪里脊肉",amount:"50g"},{name:"小白菜",amount:"2颗"}],
+      s: "参考家常菜谱",
+      t: "25分钟",
+      z: ["大米 半杯（约75g）", "猪里脊肉 50g", "小白菜 2颗"],
+      f: ["生姜 2片（切丝）", "小葱 1根（切葱花）"],
+      l: ["盐 1小勺", "白胡椒粉 少许", "香油 几滴", "料酒 1勺"],
+      o: ["大米洗净，加足量水（约800ml），大火煮开后转小火煮20分钟至粥底绵稠。", "猪里脊肉切丝，加料酒、少许盐、白胡椒粉抓匀腌5分钟；小白菜洗净切碎。", "粥底煮好后，下姜丝、肉丝，中火煮3分钟。", "下青菜碎煮1分钟，加盐、白胡椒粉调味，关火淋香油、撒葱花即可。"],
+      k: "青菜最后放，保持翠绿和脆感。"
+    },
+    {
+      n: "番茄鸡蛋疙瘩汤",
+      comfort: "酸甜热乎，一口下去，整个人都缓过来了。",
+      m: [{name:"面粉",amount:"50g"},{name:"鸡蛋",amount:"1个"},{name:"西红柿",amount:"1个（约150g）"}],
+      s: "参考家常菜谱",
+      t: "15分钟",
+      z: ["面粉 50g", "鸡蛋 1个", "西红柿 1个（约150g）"],
+      f: ["小葱 1根（切葱花）"],
+      l: ["汤底：食用油 1勺、盐 1小勺、生抽 1勺、清水 400ml"],
+      o: ["西红柿切块。", "面粉中分次加少量水，用筷子搅拌成均匀的小疙瘩。", "热锅下油，下西红柿块中火炒出汁（约2分钟）。", "加水烧开，将面疙瘩抖散下锅，煮2-3分钟至疙瘩熟透。", "鸡蛋打散，转圈淋入锅中形成蛋花，加盐、生抽调味，撒葱花即可。"],
+      k: "面疙瘩要抖散下锅，否则成团；蛋花最后下。"
+    },
+    {
+      n: "酸辣汤",
+      comfort: "酸酸辣辣，喝完出一层薄汗，浑身都舒坦了。",
+      m: [{name:"豆腐",amount:"半盒（约150g）"},{name:"木耳",amount:"少许"},{name:"鸡蛋",amount:"1个"},{name:"香菇",amount:"2朵"}],
+      s: "参考家常菜谱",
+      t: "15分钟",
+      z: ["豆腐 半盒（约150g）", "木耳 少许", "鸡蛋 1个", "香菇 2朵"],
+      f: ["小葱 1根（切葱花）"],
+      l: ["汤底：食用油 1勺、生抽 2勺、香醋 2勺、盐 1小勺、白胡椒粉 1小勺、淀粉 1勺（加水调成水淀粉）", "泼油：香油 几滴"],
+      o: ["豆腐切丝，木耳泡发切丝，香菇切片。", "锅中加水（约500ml），水开后下豆腐丝、木耳丝、香菇片煮2分钟。", "加生抽、盐调味。", "水淀粉勾薄芡（边加边搅拌）。", "鸡蛋打散，转圈淋入形成蛋花，加香醋、白胡椒粉调味。", "关火淋香油、撒葱花即可。"],
+      k: "酸辣味来自香醋+白胡椒粉；勾芡是灵魂。"
+    },
+    {
+      n: "南昌拌粉",
+      comfort: "爽滑Q弹，剁椒一拌，胃口就回来了。",
+      m: [{name:"江西米粉",amount:"150g（干）"}],
+      s: "参考家常菜谱",
+      t: "20分钟",
+      z: ["江西米粉 150g（干）"],
+      f: ["小葱 1根（切葱花）", "剁椒 1勺", "花生碎 1勺", "萝卜干 1勺"],
+      l: ["拌料：生抽 2勺、老抽 半勺、蚝油 1勺、蒜末 1瓣、香油 1小勺"],
+      o: ["米粉冷水泡软（约2小时），开水煮至八分熟（约3-4分钟），捞出过凉水沥干。", "所有拌料调匀成酱汁。", "米粉装碗，淋入酱汁，加剁椒、葱花、花生碎、萝卜干。", "拌匀即可。"],
+      k: "米粉煮后过凉更爽滑；剁椒是灵魂。"
+    },
+    {
+      n: "葱油拌面",
+      comfort: "葱香扑鼻，简简单单一碗，满足感拉满。",
+      m: [{name:"面条",amount:"150g"}],
+      s: "参考家常菜谱",
+      t: "15分钟",
+      z: ["面条 150g"],
+      f: ["小葱 1把（约50g，切段）"],
+      l: ["葱油：食用油 3勺", "拌料：生抽 2勺、老抽 半勺、白糖 1勺"],
+      o: ["小葱切段（葱白和葱叶分开放）。", "热锅下油，下葱白段中火炸至微焦，再下葱叶段炸至金黄，捞出葱段（葱油完成）。", "生抽、老抽、白糖调匀，倒入葱油中，小火煮开（约30秒）。", "面条煮至八分熟，捞出过凉水沥干，装碗。", "淋入葱油酱汁，拌匀即可。"],
+      k: "葱白和葱叶分开炸；炸葱油要小火不能焦。"
+    },
+    {
+      n: "排骨焖饭",
+      comfort: "肉香渗进米饭，一锅搞定，不用再纠结做几个菜。",
+      m: [{name:"大米",amount:"1杯（约150g）"},{name:"排骨",amount:"200g"}],
+      s: "参考家常菜谱",
+      t: "25分钟",
+      z: ["大米 1杯（约150g）", "排骨 200g"],
+      f: ["生姜 3片", "小葱 1根（切段）"],
+      l: ["焯水：料酒 1勺", "焖饭：生抽 2勺、老抽 半勺、蚝油 1勺、白糖 1小勺、食用油 2勺"],
+      o: ["排骨冷水下锅加料酒焯水去血沫，捞出沥干。", "热锅下油，下排骨中火煎至两面微黄（约3分钟），爆香姜片。", "加生抽、老抽、蚝油、白糖炒匀上色，加一碗水（约200ml）煮5分钟。", "大米洗净，放入电饭煲，倒入排骨和汤汁（水量比平时略少）。", "按下煮饭键，饭煮好后焖5分钟，撒葱段翻拌均匀即可。"],
+      k: "排骨先煎再焖更香；水量比平时少一点。"
+    },
+    {
+      n: "懒人焖饭",
+      comfort: "冰箱里有什么就放什么，电饭煲一按，等着吃就行了。",
+      m: [{name:"大米",amount:"1杯（约150g）"},{name:"熟食肉",amount:"100g"}],
+      s: "参考家常菜谱",
+      t: "25分钟",
+      z: ["大米 1杯（约150g）", "熟食肉（腊肉/卤牛肉/烧鸭等）100g"],
+      f: ["土豆 1个（约150g）", "豆米（或豌豆）50g"],
+      l: ["焖饭：生抽 2勺、蚝油 1勺、食用油 1勺、辣椒粉 1小勺（可选）"],
+      o: ["大米洗净，放入电饭煲，加水（比平时略少）。", "熟食肉切丁，土豆去皮切丁，豆米洗净。", "将熟食肉丁、土豆丁、豆米铺在米上。", "淋入生抽、蚝油、食用油、辣椒粉（可选），按下煮饭键。", "饭煮好后焖5分钟，翻拌均匀即可。"],
+      k: "熟食肉是灵魂，冰箱有什么放什么；水量比平时略少。"
+    },
+    {
+      n: "肉丝焖面",
+      comfort: "面条吸饱肉汁，软绵入味，省事又暖胃。",
+      m: [{name:"面条",amount:"150g"},{name:"猪里脊肉",amount:"100g"},{name:"豆角",amount:"100g"}],
+      s: "参考家常菜谱",
+      t: "20分钟",
+      z: ["面条 150g", "猪里脊肉 100g", "豆角 100g（或豆芽）"],
+      f: ["大蒜 2瓣（切片）", "生姜 3片"],
+      l: ["腌制肉丝：生抽 1勺、料酒 1勺、淀粉 1小勺", "碗汁：生抽 2勺、老抽 半勺、蚝油 1勺、清水 半碗", "食用油 2勺"],
+      o: ["肉切丝，加生抽、料酒、淀粉抓匀腌10分钟。", "面条煮至八分熟，捞出过凉水沥干。", "热锅下油，滑炒肉丝至变色盛出。", "锅中留底油，爆香姜蒜，下豆角翻炒2分钟。", "下肉丝，淋入碗汁，将面条铺在最上面（不要翻动），加盖中火焖5分钟。", "开盖大火翻炒收汁即可。"],
+      k: "面条铺在最上面焖，吸饱汤汁；最后大火翻炒收汁。"
+    },
+    {
+      n: "南昌炒粉",
+      comfort: "大火快炒，锅气十足，香辣开胃，吃了就停不下来。",
+      m: [{name:"江西米粉",amount:"150g（干）"},{name:"猪里脊肉",amount:"80g"},{name:"鸡蛋",amount:"1个"},{name:"青菜",amount:"2颗"}],
+      s: "参考家常菜谱",
+      t: "20分钟",
+      z: ["江西米粉 150g（干）", "猪里脊肉 80g", "鸡蛋 1个", "青菜 2颗"],
+      f: ["大蒜 2瓣（切片）", "小葱 1根（切段）", "干辣椒 2个"],
+      l: ["腌制肉丝：生抽 1勺、料酒 1勺、淀粉 1小勺", "炒制：食用油 3勺、生抽 2勺、老抽 半勺、蚝油 1勺、盐 1小勺"],
+      o: ["米粉冷水泡软（约2小时），开水煮至八分熟（约3-4分钟），捞出过凉水沥干。", "肉切丝，加生抽、料酒、淀粉抓匀腌10分钟。", "鸡蛋打散加少许盐，青菜洗净切段。", "热锅下油，滑炒肉丝至变色盛出；再炒蛋至凝固盛出。", "锅中留底油，爆香蒜片、干辣椒，下青菜大火翻炒30秒。", "下米粉、肉丝、鸡蛋，加生抽、老抽、蚝油、盐，大火快速翻炒1分钟，撒葱段即可。"],
+      k: "米粉煮后过凉；全程大火快炒，锅气足才香。"
+    },
+    {
+      n: "雪菜肉丝面",
+      comfort: "雪菜的酸咸正好开胃，热汤面下肚，整个人都舒服了。",
+      m: [{name:"面条",amount:"150g"},{name:"猪里脊肉",amount:"80g"},{name:"雪菜",amount:"50g"}],
+      s: "参考家常菜谱",
+      t: "15分钟",
+      z: ["面条 150g", "猪里脊肉 80g", "雪菜 50g"],
+      f: ["大蒜 2瓣（切片）", "小葱 1根（切葱花）"],
+      l: ["腌制肉丝：生抽 1勺、料酒 1勺、淀粉 1小勺", "汤底：食用油 2勺、生抽 1勺、盐 1小勺"],
+      o: ["肉切丝，加生抽、料酒、淀粉抓匀腌10分钟。", "雪菜洗净切碎（若太咸可泡水10分钟）。", "热锅下油，滑炒肉丝至变色盛出。", "锅中留底油，爆香蒜片，下雪菜碎炒出香味（约2分钟）。", "加水（约500ml）烧开，下面条煮至八分熟。", "下肉丝，加生抽、盐调味，煮1分钟，撒葱花即可。"],
+      k: "雪菜炒出香味再加水；雪菜本身有咸味，盐少放。"
+    },
+    {
+      n: "麻辣小面",
+      comfort: "麻、辣、烫，一口下去，什么疲惫都没了。",
+      m: [{name:"面条",amount:"150g"},{name:"青菜",amount:"2颗"}],
+      s: "参考家常菜谱",
+      t: "15分钟",
+      z: ["面条 150g", "青菜 2颗"],
+      f: ["小葱 1根（切葱花）", "蒜末 1瓣"],
+      l: ["汤底：食用油 2勺、辣椒油 2勺、花椒粉 1小勺、生抽 2勺、香醋 1勺、盐 1小勺、白糖 1小勺、蒜末 1瓣", "煮面：清水 500ml"],
+      o: ["所有调料放入碗底，烧热2勺油浇在辣椒油和花椒粉上激发出香味。", "锅中烧水，水开后下面条煮至八分熟，下青菜煮30秒。", "将面汤舀入碗中（约半碗），调匀汤底。", "面条和青菜捞入碗中，撒葱花即可。"],
+      k: "热油浇辣椒油是灵魂；面条不要煮太久。"
+    }
+  ]
+}
+];
+
+        // ================================================================
+        // 核心功能（包含完整的轮转逻辑，已修复指针覆盖问题）
+        // ================================================================
+
+        function getItemsByCat(cat) {
+            var group = dishData.find(function(g) { return g.cat === cat; });
+            return group ? group.items.slice() : [];
+        }
+
+        function getItemsByCats(cats) {
+            var result = [];
+            cats.forEach(function(cat) {
+                var items = getItemsByCat(cat);
+                result = result.concat(items);
+            });
+            return result;
+        }
+
+        var STORAGE_KEY = 'week_menu_history';
+
+        function getHistory() {
+            try {
+                var data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    var parsed = JSON.parse(data);
+                    if (parsed && typeof parsed === 'object') {
+                        if (!Array.isArray(parsed.records)) parsed.records = [];
+                        if (typeof parsed.currentWeek !== 'number') parsed.currentWeek = 0;
+                        if (!parsed.pointers) parsed.pointers = {};
+                        if (typeof parsed.weekCounter !== 'number') parsed.weekCounter = 0;
+                        return parsed;
+                    }
+                }
+            } catch (e) {}
+            return { records: [], currentWeek: 0, pointers: {}, weekCounter: 0 };
+        }
+
+        function saveHistory(history) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            } catch (e) {}
+        }
+
+        function resetHistory() {
+            if (confirm('重置轮换历史，所有菜品将重新开始轮换。确定吗？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                var clean = { records: [], currentWeek: 0, pointers: {}, weekCounter: 0 };
+                saveHistory(clean);
+                updateWeekInfo();
+                alert('已重置轮换历史！');
+                renderAll();
+            }
+        }
+
+        function getNextWeekNumber() {
+            var history = getHistory();
+            return (history.currentWeek || 0) + 1;
+        }
+
+        function recordWeekDishes(dishes) {
+            var history = getHistory();
+            var weekNum = getNextWeekNumber();
+            var record = { week: weekNum, date: new Date().toISOString(), dishes: dishes };
+            history.records.push(record);
+            history.currentWeek = weekNum;
+            history.records.sort(function(a, b) { return b.week - a.week; });
+            if (history.records.length > 52) history.records = history.records.slice(0, 52);
+            saveHistory(history);
+            return weekNum;
+        }
+
+        function getDishWeekMap() {
+            var history = getHistory();
+            var map = {};
+            history.records.forEach(function(record) {
+                record.dishes.forEach(function(name) {
+                    if (!map[name]) map[name] = [];
+                    map[name].push(record.week);
+                });
+            });
+            return map;
+        }
+
+        function updateWeekInfo() {
+            var history = getHistory();
+            var weekEl = document.getElementById('weekInfo');
+            var map = getDishWeekMap();
+            var totalDishes = 0;
+            dishData.forEach(function(g) { totalDishes += g.items.length; });
+            var usedCount = Object.keys(map).length;
+            weekEl.textContent = '📅 第 ' + (history.currentWeek || 0) + ' 周 · 已出 ' + usedCount + '/' + totalDishes +
+            ' 道';
+        }
+
+        var catNames = {
+            '肉丝': '🥩 猪肉（肉丝）',
+            '肉馅': '🥩 猪肉（肉馅）',
+            '鸡肉': '🐔 鸡肉',
+            '鸡蛋': '🥚 鸡蛋',
+            '鱼类': '🐟 鱼类',
+            '虾类': '🦐 虾类',
+            '牛羊肉卷': '🥩 牛羊肉卷',
+            '牛肉（鲜）': '🥩 牛肉（鲜）',
+            '豆制品': '🧈 豆制品',
+            '凉菜': '🥗 凉菜',
+            '经典大菜': '🍲 经典大菜',
+            '抚慰主食': '🍜 抚慰主食'
+        };
+
+        var porkCats = ['肉丝', '肉馅'];
+
+        // ★★★ 核心轮转函数：每个分类独立指针，每次取下一道 ★★★
+        function getRotateCandidate(catName) {
+            var items = getItemsByCat(catName);
+            if (!items || items.length === 0) return null;
+
+            var history = getHistory();
+            if (!history.pointers) history.pointers = {};
+            if (history.pointers[catName] === undefined) history.pointers[catName] = 0;
+
+            var pointer = history.pointers[catName];
+            var item = items[pointer % items.length];
+            history.pointers[catName] = (pointer + 1) % items.length;
+            saveHistory(history);
+            return item;
+        }
+
+        var mainContent = document.getElementById('mainContent');
+        var allCards = [];
+        var nameToCard = {};
+
+        function renderAll() {
+            mainContent.innerHTML = '';
+            allCards = [];
+            nameToCard = {};
+            var weekMap = getDishWeekMap();
+
+            if (!dishData || dishData.length === 0) {
+                mainContent.innerHTML =
+                    '<div style="padding:40px;text-align:center;color:#8896ab;">暂无菜品数据，请粘贴 dishData。</div>';
+                return;
+            }
+
+            dishData.forEach(function(group) {
+                if (!group || !group.items || group.items.length === 0) return;
+
+                var groupDiv = document.createElement('div');
+                groupDiv.className = 'dish-group';
+
+                var header = document.createElement('div');
+                header.className = 'group-header';
+                header.innerHTML =
+                    `<span class="arrow">▼</span><span class="group-title">${catNames[group.cat] || group.cat}</span><span class="dish-count">${group.items.length} 道</span>`;
+                groupDiv.appendChild(header);
+
+                var body = document.createElement('div');
+                body.className = 'group-body';
+                var grid = document.createElement('div');
+                grid.className = 'dish-grid';
+
+                group.items.forEach(function(item) {
+                    try {
+                        var name = item.n || '未命名';
+                        var mains = item.m || [];
+                        var mainsJson = JSON.stringify(mains);
+                        var card = document.createElement('div');
+                        card.className = 'dish-card';
+                        card.setAttribute('data-id', name);
+                        card.setAttribute('data-mains', mainsJson);
+
+                        var head = document.createElement('div');
+                        head.className = 'dish-head';
+                        var weeks = weekMap[name] || [];
+                        // 对周数排序（升序）
+                        var sortedWeeks = weeks.slice().sort(function(a, b) { return a - b; });
+                        var badgeHtml = '';
+                        if (sortedWeeks.length > 0) {
+                            var display = sortedWeeks.slice(0, 6).join(',');
+                            if (sortedWeeks.length > 6) display += '...';
+                            badgeHtml = `<span class="week-badge">📅 ${display}周</span>`;
+                        } else {
+                            badgeHtml = `<span class="week-badge" style="background:#f1f3f5;color:#aaa;">未出</span>`;
+                        }
+                        head.innerHTML =
+                            `<input type="checkbox" class="dish-check"><span class="dish-name">${name} ${badgeHtml}</span>`;
+                        card.appendChild(head);
+
+                        var bodyContent = document.createElement('div');
+                        bodyContent.className = 'dish-body';
+                        var source = document.createElement('div');
+                        source.className = 'source';
+                        source.textContent = item.s || '参考家常菜谱';
+                        bodyContent.appendChild(source);
+
+                        var timeTag = document.createElement('div');
+                        timeTag.className = 'time-tag';
+                        timeTag.textContent = '⏱ ' + (item.t || '20分钟');
+                        bodyContent.appendChild(timeTag);
+
+                        var h4 = document.createElement('h4');
+                        h4.textContent = '【主料】';
+                        bodyContent.appendChild(h4);
+                        var ul = document.createElement('ul');
+                        if (item.z && item.z.length) {
+                            item.z.forEach(function(line) { var li = document.createElement('li');
+                                li.textContent = line;
+                                ul.appendChild(li); });
+                        } else { var li = document.createElement('li');
+                            li.textContent = '（无）';
+                            ul.appendChild(li); }
+                        bodyContent.appendChild(ul);
+
+                        var h4f = document.createElement('h4');
+                        h4f.textContent = '【辅料】';
+                        bodyContent.appendChild(h4f);
+                        var ulf = document.createElement('ul');
+                        if (item.f && item.f.length) {
+                            item.f.forEach(function(line) { var li = document.createElement('li');
+                                li.textContent = line;
+                                ulf.appendChild(li); });
+                        } else { var li = document.createElement('li');
+                            li.textContent = '（无）';
+                            ulf.appendChild(li); }
+                        bodyContent.appendChild(ulf);
+
+                        var h4l = document.createElement('h4');
+                        h4l.textContent = '【调料】';
+                        bodyContent.appendChild(h4l);
+                        var ull = document.createElement('ul');
+                        if (item.l && item.l.length) {
+                            item.l.forEach(function(line) { var li = document.createElement('li');
+                                li.textContent = line;
+                                ull.appendChild(li); });
+                        } else { var li = document.createElement('li');
+                            li.textContent = '（无）';
+                            ull.appendChild(li); }
+                        bodyContent.appendChild(ull);
+
+                        var h4o = document.createElement('h4');
+                        h4o.textContent = '操作步骤';
+                        bodyContent.appendChild(h4o);
+                        var ol = document.createElement('ol');
+                        if (item.o && item.o.length) {
+                            item.o.forEach(function(line) { var li = document.createElement('li');
+                                li.textContent = line;
+                                ol.appendChild(li); });
+                        } else { var li = document.createElement('li');
+                            li.textContent = '（无）';
+                            ol.appendChild(li); }
+                        bodyContent.appendChild(ol);
+
+                        if (item.k) {
+                            var kp = document.createElement('div');
+                            kp.className = 'key-point';
+                            kp.textContent = item.k;
+                            bodyContent.appendChild(kp);
+                        }
+
+                        card.appendChild(bodyContent);
+                        grid.appendChild(card);
+                        allCards.push({ card: card, name: name, mains: mains });
+                        nameToCard[name] = card;
+                    } catch (e) {
+                        console.warn('跳过出错菜品:', item.n, e);
+                    }
+                });
+
+                body.appendChild(grid);
+                groupDiv.appendChild(body);
+                mainContent.appendChild(groupDiv);
+
+                header.addEventListener('click', function(e) {
+                    var arrow = this.querySelector('.arrow');
+                    var gbody = this.nextElementSibling;
+                    if (gbody.classList.contains('collapsed')) {
+                        gbody.classList.remove('collapsed');
+                        arrow.classList.remove('collapsed');
+                    } else {
+                        gbody.classList.add('collapsed');
+                        arrow.classList.add('collapsed');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.dish-name').forEach(function(name) {
+                name.removeEventListener('click', name._clickListener);
+                name.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var body = this.closest('.dish-card').querySelector('.dish-body');
+                    body.classList.toggle('open');
+                });
+            });
+
+            updateSelectedCount();
+            updateWeekInfo();
+            renderQuickSelect();
+        }
+
+        function renderQuickSelect() {
+            var container = document.getElementById('qsGroupsContainer');
+            container.innerHTML = '';
+            var weekMap = getDishWeekMap();
+
+            dishData.forEach(function(group) {
+                if (group.cat === '火腿肠') return;
+                var catDisplay = catNames[group.cat] || group.cat;
+                var groupDiv = document.createElement('div');
+                groupDiv.className = 'qs-group';
+                var label = document.createElement('div');
+                label.className = 'qs-group-label';
+                label.textContent = catDisplay;
+                groupDiv.appendChild(label);
+
+                var grid = document.createElement('div');
+                grid.className = 'qs-grid';
+                group.items.forEach(function(item) {
+                    var div = document.createElement('div');
+                    div.className = 'qs-item';
+                    var weeks = weekMap[item.n] || [];
+                    // 升序排列
+                    var sorted = weeks.slice().sort(function(a, b) { return a - b; });
+                    var tagHtml = sorted.length > 0 ?
+                        `<span class="qs-tag">📅 ${sorted.join(',')}周</span>` :
+                        '';
+                    div.innerHTML =
+                        `<input type="checkbox" class="qs-check" data-name="${item.n}"><span class="qs-name">${item.n}</span>${tagHtml}`;
+                    grid.appendChild(div);
+                });
+                groupDiv.appendChild(grid);
+                container.appendChild(groupDiv);
+            });
+
+            var qsChecks = document.querySelectorAll('.qs-check');
+            var dishChecks = document.querySelectorAll('.dish-check');
+            var nameToCardCheck = {};
+            dishChecks.forEach(function(cb) {
+                var card = cb.closest('.dish-card');
+                var name = card.getAttribute('data-id');
+                nameToCardCheck[name] = cb;
+            });
+
+            qsChecks.forEach(function(qsCb) {
+                qsCb.removeEventListener('change', qsCb._listener);
+                qsCb.addEventListener('change', function() {
+                    var name = this.getAttribute('data-name');
+                    if (nameToCardCheck[name]) {
+                        nameToCardCheck[name].checked = this.checked;
+                        updateSelectedCount();
+                    }
+                });
+            });
+
+            dishChecks.forEach(function(cb) {
+                cb.removeEventListener('change', cb._listener);
+                cb.addEventListener('change', function() {
+                    var card = this.closest('.dish-card');
+                    var name = card.getAttribute('data-id');
+                    var qsCb = document.querySelector(`.qs-check[data-name="${name}"]`);
+                    if (qsCb) qsCb.checked = this.checked;
+                    updateSelectedCount();
+                });
+            });
+
+            document.getElementById('qsSelectAll').addEventListener('click', function() {
+                document.querySelectorAll('.qs-check').forEach(function(cb) { cb.checked = true; });
+                document.querySelectorAll('.dish-check').forEach(function(cb) { cb.checked = true; });
+                updateSelectedCount();
+            });
+            document.getElementById('qsClearAll').addEventListener('click', function() {
+                document.querySelectorAll('.qs-check').forEach(function(cb) { cb.checked = false; });
+                document.querySelectorAll('.dish-check').forEach(function(cb) { cb.checked = false; });
+                updateSelectedCount();
+            });
+        }
+
+        var searchInput = document.getElementById('searchInput');
+        var clearSearch = document.getElementById('clearSearch');
+        searchInput.addEventListener('input', function() {
+            var kw = this.value.trim().toLowerCase();
+            clearSearch.classList.toggle('visible', kw.length > 0);
+
+            allCards.forEach(function(item) {
+                var name = item.name.toLowerCase();
+                var mainsStr = JSON.stringify(item.mains).toLowerCase();
+                var match = !kw || name.includes(kw) || mainsStr.includes(kw);
+                item.card.style.display = match ? '' : 'none';
+            });
+
+            document.querySelectorAll('.qs-item').forEach(function(item) {
+                var name = item.querySelector('.qs-name').textContent.toLowerCase();
+                var match = !kw || name.includes(kw);
+                item.style.display = match ? '' : 'none';
+            });
+
+            document.querySelectorAll('.dish-group').forEach(function(g) {
+                var visible = g.querySelectorAll('.dish-card[style*="display: none"]').length < g
+                    .querySelectorAll('.dish-card').length;
+                var body = g.querySelector('.group-body');
+                if (body) { body.style.display = (visible || kw === '') ? '' : 'none'; }
+            });
+        });
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+            searchInput.focus();
+        });
+
+        function updateSelectedCount() {
+            var count = document.querySelectorAll('.dish-check:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+
+        document.getElementById('clearAllBtn').addEventListener('click', function() {
+            document.querySelectorAll('.dish-check').forEach(function(cb) { cb.checked = false; });
+            document.querySelectorAll('.qs-check').forEach(function(cb) { cb.checked = false; });
+            updateSelectedCount();
+            document.getElementById('weekMenuArea').classList.remove('visible');
+        });
+
+        // ================================================================
+        // ★★★ 生成一周食单（固定4道 + 8周计划表轮换3道，全部使用轮转指针）★★★
+        // ================================================================
+        document.getElementById('generateWeekBtn').addEventListener('click', function() {
+            var totalDishes = 0;
+            dishData.forEach(function(g) { totalDishes += g.items.length; });
+            if (totalDishes === 0) {
+                alert('请先粘贴完整的菜品数据！');
+                return;
+            }
+
+            var weekMap = getDishWeekMap();
+            var history = getHistory();
+            var weekNum = history.currentWeek || 0;
+            var isOddWeek = (weekNum % 2 === 1);
+
+            if (history.weekCounter === undefined) {
+                history.weekCounter = 0;
+            }
+            var weekInCycle = history.weekCounter % 8;
+
+            var selected = [];
+            var selectedNames = [];
+
+            function addToSelected(dish) {
+                if (!dish) return false;
+                if (selectedNames.indexOf(dish.n) !== -1) return false;
+                selected.push(dish);
+                selectedNames.push(dish.n);
+                return true;
+            }
+
+            // 固定4道
+            addToSelected(getRotateCandidate('鸡蛋'));
+            addToSelected(getRotateCandidate('鱼类'));
+            var porkCat = isOddWeek ? '肉丝' : '肉馅';
+            addToSelected(getRotateCandidate(porkCat));
+            addToSelected(getRotateCandidate('鸡肉'));
+
+            // 轮换3道
+            var schedule = [
+                ['虾类', '豆制品', '凉菜'],
+                ['虾类', '经典大菜', '牛羊肉卷'],
+                ['豆制品', '虾类', '牛肉（鲜）'],
+                ['豆制品', '凉菜', '经典大菜'],
+                ['虾类', '豆制品', '牛羊肉卷'],
+                ['虾类', '牛肉（鲜）', '凉菜'],
+                ['豆制品', '虾类', '经典大菜'],
+                ['豆制品', '牛羊肉卷', '牛肉（鲜）']
+            ];
+
+            var rotateCategories = schedule[weekInCycle];
+            rotateCategories.forEach(function(cat) {
+                var dish = getRotateCandidate(cat);
+                if (dish) addToSelected(dish);
+            });
+
+            // 更新 weekCounter（重新获取最新历史，避免覆盖指针）
+            var latestHistory = getHistory();
+            latestHistory.weekCounter = (latestHistory.weekCounter + 1) % 8;
+            saveHistory(latestHistory);
+
+            // 补全（极少发生）
+            var allItems = [];
+            dishData.forEach(function(g) { allItems = allItems.concat(g.items); });
+            while (selected.length < 7) {
+                var remaining = allItems.filter(function(item) {
+                    return selectedNames.indexOf(item.n) === -1;
+                });
+                if (remaining.length === 0) break;
+                var sorted = remaining.slice().sort(function(a, b) {
+                    var weeksA = weekMap[a.n] || [];
+                    var weeksB = weekMap[b.n] || [];
+                    var lastA = weeksA.length > 0 ? weeksA[weeksA.length - 1] : 0;
+                    var lastB = weeksB.length > 0 ? weeksB[weeksB.length - 1] : 0;
+                    return lastA - lastB;
+                });
+                var extra = sorted[0];
+                if (extra) addToSelected(extra);
+                else break;
+            }
+
+            var names = selected.map(function(item) { return item.n; });
+            var newWeek = recordWeekDishes(names);
+
+            document.querySelectorAll('.dish-check').forEach(function(cb) { cb.checked = false; });
+            document.querySelectorAll('.qs-check').forEach(function(cb) { cb.checked = false; });
+            selected.forEach(function(item) {
+                var card = nameToCard[item.n];
+                if (card) {
+                    var cb = card.querySelector('.dish-check');
+                    if (cb) cb.checked = true;
+                }
+                var qsCb = document.querySelector('.qs-check[data-name="' + item.n + '"]');
+                if (qsCb) qsCb.checked = true;
+            });
+            updateSelectedCount();
+
+            renderWeekMenu();
+            renderAll();
+
+            var usedAfter = getDishWeekMap();
+            var usedCount = Object.keys(usedAfter).length;
+            alert('✅ 已生成第 ' + newWeek + ' 周食单（7道）：\n\n' + names.join('、') +
+                '\n\n📊 已累计出菜：' + usedCount + '/' + totalDishes + ' 道');
+        });
+
+        // ================================================================
+        // renderWeekMenu（不变）
+        // ================================================================
+        function renderWeekMenu() {
+            var checked = document.querySelectorAll('.dish-check:checked');
+            var container = document.getElementById('weekMenuContent');
+            var area = document.getElementById('weekMenuArea');
+
+            if (checked.length === 0) {
+                area.style.display = 'none';
+                area.classList.remove('visible');
+                container.innerHTML = '';
+                return;
+            }
+
+            var html = '';
+            var shoppingMap = {};
+            var selectedList = [];
+            var checkedNames = [];
+            checked.forEach(function(cb) {
+                var card = cb.closest('.dish-card');
+                if (card) {
+                    var name = card.getAttribute('data-id');
+                    if (name) checkedNames.push(name);
+                }
+            });
+
+            if (checkedNames.length === 0) {
+                area.style.display = 'none';
+                area.classList.remove('visible');
+                container.innerHTML = '';
+                return;
+            }
+
+            var selectedDishes = [];
+            checkedNames.forEach(function(name) {
+                for (var i = 0; i < dishData.length; i++) {
+                    var group = dishData[i];
+                    for (var j = 0; j < group.items.length; j++) {
+                        var item = group.items[j];
+                        if (item.n === name) {
+                            selectedDishes.push({
+                                item: item,
+                                cat: group.cat,
+                                catDisplay: catNames[group.cat] || group.cat
+                            });
+                            break;
+                        }
+                    }
+                }
+            });
+
+            if (selectedDishes.length === 0) {
+                container.innerHTML = '<div style="padding:20px;color:#d9534f;">未找到对应的菜品数据。</div>';
+                area.style.display = 'block';
+                area.classList.add('visible');
+                return;
+            }
+
+            try {
+                var catMap = {};
+                selectedDishes.forEach(function(d) {
+                    var cat = d.catDisplay;
+                    if (!catMap[cat]) catMap[cat] = [];
+                    catMap[cat].push(d.item.n);
+                });
+
+                html += `<div class="selected-dishes-summary">`;
+                html += `<div class="sd-title">📌 已选菜品（${selectedDishes.length}道）</div>`;
+                html += `<div class="sd-list">`;
+                for (var cat in catMap) {
+                    catMap[cat].forEach(function(name) {
+                        html += `<span class="sd-item">${cat} · ${name}</span>`;
+                    });
+                }
+                html += `</div></div>`;
+
+                // 采购清单
+                selectedDishes.forEach(function(d) {
+                    var mains = d.item.m || [];
+                    mains.forEach(function(m) {
+                        if (!m || !m.name) return;
+                        var rawName = m.name;
+                        if (shoppingMap[rawName]) {
+                            shoppingMap[rawName].amount = shoppingMap[rawName].amount + ' + ' + (m.amount || '');
+                        } else {
+                            shoppingMap[rawName] = { name: rawName, amount: m.amount || '', raw: rawName };
+                        }
+                    });
+                });
+
+                var categoryMap = {
+                    '🥩 肉类': ['猪肉', '鸡肉', '牛肉', '羊肉', '肥牛', '五花肉', '里脊', '鸡胸', '鸡腿', '牛腩', '毛肚', '午餐肉',
+                        '排骨', '鸭血', '鸭腿', '鸭头', '鸭翅', '鸭脚', '腊肉', '香肠', '猪里脊', '牛腱子', '牛里脊', '鸭肉',
+                        '鸭胗'
+                    ],
+                    '🦐 水产': ['虾', '基围虾', '虾仁', '鱼', '鲈鱼', '带鱼', '鲳鱼', '青花鱼', '秋刀鱼', '墨鱼', '鱿鱼', '草鱼',
+                        '黑鱼', '鳙鱼', '鲫鱼', '鲤鱼', '黄鱼', '三文鱼', '鳕鱼', '龙利鱼'
+                    ],
+                    '🥬 蔬菜': ['青椒', '尖椒', '蒜苔', '芹菜', '洋葱', '韭菜', '蒜苗', '大葱', '豆角', '胡萝卜', '包菜', '木耳',
+                        '香菇', '金针菇', '黄花菜', '青笋', '空心菜', '生菜', '油麦菜', '土豆', '西葫芦', '丝瓜', '杏鲍菇',
+                        '西瓜皮', '花菜', '冬瓜', '苦瓜', '酸豆角', '西兰花', '菜根', '西红柿', '香菜', '菠菜', '余干辣椒',
+                        '白菜', '娃娃菜', '青菜', '芦笋', '南瓜', '茄子', '毛豆', '白萝卜', '豆芽', '莲藕', '藜蒿', '黄瓜',
+                        '彩椒', '番茄', '辣椒', '红椒', '黄椒', '藕片', '黄瓜片', '萝卜', '胡萝卜片', '莴笋', '莴苣', '木耳菜',
+                        '茼蒿', '荠菜', '马兰头', '苋菜', '空心菜梗'
+                    ]
+                };
+
+                var categories = {
+                    '🥩 肉类': { items: [] },
+                    '🦐 水产': { items: [] },
+                    '🥬 蔬菜': { items: [] },
+                    '📦 其他': { items: [] }
+                };
+
+                var keys = Object.keys(shoppingMap);
+                keys.forEach(function(key) {
+                    var item = shoppingMap[key];
+                    var raw = item.raw || item.name;
+                    var placed = false;
+                    for (var catName in categories) {
+                        if (catName === '📦 其他') continue;
+                        var matched = categoryMap[catName].some(function(kw) {
+                            return raw.indexOf(kw) !== -1;
+                        });
+                        if (matched) {
+                            categories[catName].items.push(item);
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if (!placed) categories['📦 其他'].items.push(item);
+                });
+
+                html += `<div class="shopping-summary">`;
+                html += `<h4>🛒 采购清单（分类整理）</h4>`;
+                var categoryOrder = ['🥩 肉类', '🦐 水产', '🥬 蔬菜', '📦 其他'];
+                categoryOrder.forEach(function(catName) {
+                    var items = categories[catName].items;
+                    if (items.length === 0) return;
+                    html += `<div class="category-group">`;
+                    html += `<div class="category-label">${catName}</div>`;
+                    html += `<div class="list">`;
+                    items.forEach(function(item) {
+                        html += `<span>${item.name}（${item.amount}）</span>`;
+                    });
+                    html += `</div></div>`;
+                });
+                html +=
+                    `<p style="font-size:13px;color:#8896ab;margin:10px 0 0 0;">* 葱姜蒜、盐、生抽、料酒、淀粉、糖、胡椒粉等基础调料不列入清单</p>`;
+                html += `</div>`;
+
+                // 食材复用
+                var reuseMap = {};
+                selectedDishes.forEach(function(d) {
+                    var name = d.item.n;
+                    var mains = d.item.m || [];
+                    mains.forEach(function(m) {
+                        if (!m || !m.name) return;
+                        var raw = m.name;
+                        var mainKeywords = ['猪肉', '鸡肉', '鸡胸', '鸡腿', '鱼', '虾', '牛肉', '羊肉', '肥牛', '鸡蛋',
+                            '豆腐', '豆干', '腐竹', '素鸡', '豆泡'
+                        ];
+                        var isMain = mainKeywords.some(function(kw) { return raw.indexOf(kw) !== -1; });
+                        if (isMain) {
+                            if (!reuseMap[raw]) reuseMap[raw] = [];
+                            reuseMap[raw].push(name);
+                        }
+                    });
+                });
+
+                var reuseKeys = Object.keys(reuseMap);
+                if (reuseKeys.length > 0) {
+                    html += `<div class="reuse-tips">`;
+                    html += `<h4>🧩 食材复用建议（集中备菜）</h4>`;
+                    reuseKeys.forEach(function(key) {
+                        var dishes = reuseMap[key];
+                        if (dishes.length >= 2) {
+                            html +=
+                                `<div class="reuse-item"><span class="reuse-name">${key}</span> 共用 <strong>${dishes.length}</strong> 道菜：<span class="reuse-dishes">${dishes.join('、')}</span></div>`;
+                        } else {
+                            html +=
+                                `<div class="reuse-item"><span class="reuse-name">${key}</span> 单次使用：<span class="reuse-dishes">${dishes[0]}</span></div>`;
+                        }
+                    });
+                    html += `</div>`;
+                }
+
+                // 做法
+                selectedDishes.forEach(function(d) {
+                    var item = d.item;
+                    html += `<div class="recipe-card">`;
+                    html += `<h3>${item.n}</h3>`;
+                    html += `<div class="source">${item.s || '参考家常菜谱'}</div>`;
+                    html += `<div class="time-tag">⏱ ${item.t || '20分钟'}</div>`;
+
+                    if (item.z && item.z.length) {
+                        html += `<h4>【主料】</h4><ul>`;
+                        item.z.forEach(function(line) { html += `<li>${line}</li>`; });
+                        html += `</ul>`;
+                    }
+                    if (item.f && item.f.length) {
+                        html += `<h4>【辅料】</h4><ul>`;
+                        item.f.forEach(function(line) { html += `<li>${line}</li>`; });
+                        html += `</ul>`;
+                    }
+                    if (item.l && item.l.length) {
+                        html += `<h4>【调料】</h4><ul>`;
+                        item.l.forEach(function(line) { html += `<li>${line}</li>`; });
+                        html += `</ul>`;
+                    }
+                    if (item.o && item.o.length) {
+                        html += `<h4>操作步骤</h4><ol>`;
+                        item.o.forEach(function(line) { html += `<li>${line}</li>`; });
+                        html += `</ol>`;
+                    }
+                    if (item.k) {
+                        html += `<div class="key-point">${item.k}</div>`;
+                    }
+                    html += `</div>`;
+                });
+
+            } catch (e) {
+                console.error('生成食单时出错:', e);
+                html = `<div style="padding:20px;color:#d9534f;">生成食单时出错，请检查控制台错误信息。</div>`;
+            }
+
+            container.innerHTML = html;
+            area.style.display = 'block';
+            area.classList.add('visible');
+            area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        document.getElementById('generateListBtn').addEventListener('click', function() {
+            var checked = document.querySelectorAll('.dish-check:checked');
+            if (checked.length === 0) { alert('请至少勾选一道菜！'); return; }
+            renderWeekMenu();
+        });
+
+        document.getElementById('closeWeekMenu').addEventListener('click', function() {
+            var area = document.getElementById('weekMenuArea');
+            area.style.display = 'none';
+            area.classList.remove('visible');
+        });
+
+        // ================================================================
+        // 导出功能（不变）
+        // ================================================================
+        document.getElementById('exportHtmlBtn2').addEventListener('click', function() {
+            var container = document.getElementById('weekMenuContent');
+            if (!container || !container.innerHTML || container.innerHTML.trim() === '') {
+                var checked = document.querySelectorAll('.dish-check:checked');
+                if (checked.length === 0) {
+                    alert('请先勾选菜品并生成食单。');
+                    return;
+                }
+                renderWeekMenu();
+                container = document.getElementById('weekMenuContent');
+                if (!container || !container.innerHTML || container.innerHTML.trim() === '') {
+                    alert('生成内容失败，请重试。');
+                    return;
+                }
+            }
+
+            var content = container.innerHTML;
+            var style = document.querySelector('style').innerHTML;
+
+            var fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>本周食单 · 好好吃饭</title>
+    <style>
+        ${style}
+        .week-menu-area { display: block !important; font-size: 14px; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        body { max-width: 860px; margin: 20px auto; padding: 20px; background: #f0f2f5; }
+        .recipe-card { margin-bottom: 16px; }
+        .selected-dishes-summary { margin-bottom: 16px; }
+        .shopping-summary { margin-bottom: 12px; }
+        .reuse-tips { margin-bottom: 16px; }
+        .shopping-summary .category-group { margin-bottom: 10px; }
+        .shopping-summary .category-label { font-weight: 600; font-size: 14px; color: #1f3a5f; padding: 4px 0; border-bottom: 1px dashed #dbe7f6; margin-bottom: 4px; }
+        .shopping-summary .list { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 4px 0; }
+        .shopping-summary .list span { background: white; padding: 3px 16px; border-radius: 30px; border: 1px solid #dbe7f6; font-size: 14px; }
+        .recipe-card { border: 1px solid #e9edf4; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; background: white; }
+        .recipe-card h3 { font-size: 16px; font-weight: 600; margin: 0 0 4px 0; }
+        .recipe-card .source { font-size: 12px; color: #7a8aa3; }
+        .recipe-card .time-tag { display: inline-block; background: #e8edf6; padding: 2px 12px; border-radius: 30px; font-size: 13px; font-weight: 500; color: #1f3a5f; margin-bottom: 8px; }
+        .recipe-card h4 { font-size: 14px; font-weight: 600; margin: 10px 0 4px 0; }
+        .recipe-card ul, .recipe-card ol { padding-left: 22px; }
+        .recipe-card .key-point { margin-top: 10px; padding: 10px 14px; background: #fef9e7; border-radius: 8px; border-left: 4px solid #e67e22; font-size: 14px; }
+        .recipe-card .key-point::before { content: "💡 "; }
+    </style>
+</head>
+<body>
+    <div class="week-menu-area">${content}</div>
+</body>
+</html>`;
+
+            var blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = '本周食单_' + new Date().toISOString().slice(0,10) + '.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        });
+
+        document.getElementById('exportPngBtn2').addEventListener('click', function() {
+            var container = document.getElementById('weekMenuContent');
+            if (!container || !container.innerHTML || container.innerHTML.trim() === '') {
+                var checked = document.querySelectorAll('.dish-check:checked');
+                if (checked.length === 0) {
+                    alert('请先勾选菜品并生成食单。');
+                    return;
+                }
+                renderWeekMenu();
+                container = document.getElementById('weekMenuContent');
+                if (!container || !container.innerHTML || container.innerHTML.trim() === '') {
+                    alert('生成内容失败，请重试。');
+                    return;
+                }
+            }
+
+            var wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:860px;padding:20px;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+
+            var inner = document.createElement('div');
+            inner.style.cssText = 'background:white;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);';
+            var contentClone = container.cloneNode(true);
+            inner.appendChild(contentClone);
+            wrapper.appendChild(inner);
+
+            var styles = document.querySelectorAll('style');
+            styles.forEach(function(style) {
+                var clone = style.cloneNode(true);
+                wrapper.appendChild(clone);
+            });
+
+            var extraStyle = document.createElement('style');
+            extraStyle.textContent = `
+                .selected-dishes-summary { background: #eef4ff; padding: 12px 18px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #2563eb; }
+                .selected-dishes-summary .sd-title { font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #1f3a5f; }
+                .selected-dishes-summary .sd-list { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+                .selected-dishes-summary .sd-list .sd-item { font-size: 14px; background: white; padding: 2px 14px; border-radius: 20px; border: 1px solid #dbe7f6; }
+                .shopping-summary { background: #f1f5fe; padding: 14px 18px; border-radius: 8px; margin-bottom: 12px; }
+                .shopping-summary h4 { font-size: 15px; font-weight: 600; color: #1f3a5f; margin: 0 0 8px 0; }
+                .shopping-summary .category-group { margin-bottom: 10px; }
+                .shopping-summary .category-label { font-size: 13px; font-weight: 600; color: #1f3a5f; padding: 4px 0; border-bottom: 1px dashed #dbe7f6; margin-bottom: 4px; }
+                .shopping-summary .list { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 0; }
+                .shopping-summary .list span { background: white; padding: 3px 16px; border-radius: 30px; border: 1px solid #dbe7f6; font-size: 14px; }
+                .reuse-tips { background: #fef9e7; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #e67e22; }
+                .reuse-tips h4 { font-size: 15px; font-weight: 600; color: #b9770e; margin: 0 0 6px 0; }
+                .reuse-tips .reuse-item { font-size: 14px; padding: 4px 0; border-bottom: 1px dashed #f0e4d0; }
+                .reuse-tips .reuse-item:last-child { border-bottom: none; }
+                .reuse-tips .reuse-item .reuse-name { font-weight: 600; color: #1f3a5f; }
+                .reuse-tips .reuse-item .reuse-dishes { color: #5e6f8d; font-size: 13px; }
+                .recipe-card { border: 1px solid #e9edf4; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; background: white; }
+                .recipe-card h3 { font-size: 16px; font-weight: 600; margin: 0 0 4px 0; }
+                .recipe-card .source { font-size: 12px; color: #7a8aa3; }
+                .recipe-card .time-tag { display: inline-block; background: #e8edf6; padding: 2px 12px; border-radius: 30px; font-size: 13px; font-weight: 500; color: #1f3a5f; margin-bottom: 8px; }
+                .recipe-card h4 { font-size: 14px; font-weight: 600; margin: 10px 0 4px 0; }
+                .recipe-card ul, .recipe-card ol { padding-left: 22px; }
+                .recipe-card .key-point { margin-top: 10px; padding: 10px 14px; background: #fef9e7; border-radius: 8px; border-left: 4px solid #e67e22; font-size: 14px; }
+                .recipe-card .key-point::before { content: "💡 "; }
+                .week-menu-area .menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+                .week-menu-area .menu-header h2 { font-size: 20px; font-weight: 600; color: #0b1e33; }
+            `;
+            wrapper.appendChild(extraStyle);
+
+            document.body.appendChild(wrapper);
+
+            setTimeout(function() {
+                html2canvas(wrapper, {
+                    scale: 2,
+                    backgroundColor: '#f0f2f5',
+                    useCORS: true,
+                    logging: false,
+                    width: 860,
+                    height: wrapper.scrollHeight
+                }).then(function(canvas) {
+                    var link = document.createElement('a');
+                    link.download = '本周食单_' + new Date().toISOString().slice(0,10) + '.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    document.body.removeChild(wrapper);
+                }).catch(function(err) {
+                    alert('导出图片失败，请重试。');
+                    document.body.removeChild(wrapper);
+                    console.error(err);
+                });
+            }, 500);
+        });
+
+        // ================================================================
+        // 不想做饭（不变）
+        // ================================================================
+        var comfortModal = document.getElementById('comfortModal');
+        var comfortDishName = document.getElementById('comfortDishName');
+        var comfortMessage = document.getElementById('comfortMessage');
+        var comfortRecipe = document.getElementById('comfortRecipe');
+        var comfortDishes = [];
+
+        dishData.forEach(function(group) {
+            if (group.cat === '抚慰主食') {
+                group.items.forEach(function(item) {
+                    if (!item.comfort) {
+                        item.comfort = '累了就歇歇，好好吃饭比什么都重要。';
+                    }
+                    comfortDishes.push(item);
+                });
+            }
+        });
+        if (comfortDishes.length === 0) {
+            comfortDishes = [
+                { n: '皮蛋瘦肉粥', comfort: '累了吧？来碗热粥，暖胃又暖心。', z: ['大米 半杯', '皮蛋 1个', '猪里脊肉 50g'],
+                    f: ['生姜 2片', '小葱 1根'], l: ['盐 1小勺', '白胡椒粉 少许', '香油 几滴'],
+                    o: ['大米煮成粥', '加皮蛋和肉丝'], k: '粥底要煮到开花出米油' }
+            ];
+        }
+
+        var currentComfort = null;
+
+        function randomComfort() {
+            var idx = Math.floor(Math.random() * comfortDishes.length);
+            currentComfort = comfortDishes[idx];
+            comfortDishName.textContent = '🍜 ' + currentComfort.n;
+            comfortMessage.classList.remove('show');
+            comfortMessage.textContent = '';
+            var html = '';
+            if (currentComfort.z && currentComfort.z.length) {
+                html += '<h4>【主料】</h4><ul>';
+                currentComfort.z.forEach(function(line) { html += '<li>' + line + '</li>'; });
+                html += '</ul>';
+            }
+            if (currentComfort.f && currentComfort.f.length) {
+                html += '<h4>【辅料】</h4><ul>';
+                currentComfort.f.forEach(function(line) { html += '<li>' + line + '</li>'; });
+                html += '</ul>';
+            }
+            if (currentComfort.l && currentComfort.l.length) {
+                html += '<h4>【调料】</h4><ul>';
+                currentComfort.l.forEach(function(line) { html += '<li>' + line + '</li>'; });
+                html += '</ul>';
+            }
+            if (currentComfort.o && currentComfort.o.length) {
+                html += '<h4>操作步骤</h4><ol>';
+                currentComfort.o.forEach(function(line) { html += '<li>' + line + '</li>'; });
+                html += '</ol>';
+            }
+            if (currentComfort.k) {
+                html += '<div class="key-point">' + currentComfort.k + '</div>';
+            }
+            comfortRecipe.innerHTML = html;
+            var confirmBtn = document.getElementById('comfortConfirm');
+            confirmBtn.textContent = '就吃这个';
+            confirmBtn.style.background = '';
+        }
+
+        document.getElementById('comfortBtn').addEventListener('click', function() {
+            randomComfort();
+            comfortModal.classList.add('active');
+        });
+
+        document.getElementById('comfortRefresh').addEventListener('click', function() {
+            randomComfort();
+        });
+
+        document.getElementById('comfortConfirm').addEventListener('click', function() {
+            if (currentComfort && currentComfort.comfort) {
+                comfortMessage.innerHTML = '<span class="emoji">😊</span> ' + currentComfort.comfort;
+                comfortMessage.classList.add('show');
+            }
+            var btn = document.getElementById('comfortConfirm');
+            btn.textContent = '✅ 已选';
+            btn.style.background = '#27ae60';
+        });
+
+        document.getElementById('comfortClose').addEventListener('click', function() {
+            comfortModal.classList.remove('active');
+            comfortMessage.classList.remove('show');
+        });
+        comfortModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                comfortModal.classList.remove('active');
+                comfortMessage.classList.remove('show');
+            }
+        });
+
+        function getComfortHTML() {
+            if (!currentComfort) return null;
+            var style = document.querySelector('style').innerHTML;
+            var html = `
+                <div style="max-width:600px;margin:20px auto;padding:20px;background:white;border-radius:20px;box-shadow:0 24px 48px rgba(0,0,0,0.2);">
+                    <h2 style="text-align:center;font-size:22px;font-weight:600;margin-bottom:8px;">🍜 ${currentComfort.n}</h2>
+                    <p style="text-align:center;color:#5e6f8d;font-style:italic;font-size:16px;padding:10px 0;border-bottom:1px dashed #e9edf4;margin-bottom:16px;">${currentComfort.comfort || '累了就歇歇，好好吃饭。'}</p>
+                    <div style="font-size:14px;line-height:1.6;">
+                        ${currentComfort.z && currentComfort.z.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">【主料】</h4><ul style="padding-left:22px;">' + currentComfort.z.map(line => '<li>'+line+'</li>').join('') + '</ul>' : ''}
+                        ${currentComfort.f && currentComfort.f.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">【辅料】</h4><ul style="padding-left:22px;">' + currentComfort.f.map(line => '<li>'+line+'</li>').join('') + '</ul>' : ''}
+                        ${currentComfort.l && currentComfort.l.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">【调料】</h4><ul style="padding-left:22px;">' + currentComfort.l.map(line => '<li>'+line+'</li>').join('') + '</ul>' : ''}
+                        ${currentComfort.o && currentComfort.o.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">操作步骤</h4><ol style="padding-left:22px;">' + currentComfort.o.map(line => '<li>'+line+'</li>').join('') + '</ol>' : ''}
+                        ${currentComfort.k ? '<div style="margin-top:10px;padding:10px 14px;background:#fef9e7;border-radius:8px;border-left:4px solid #e67e22;font-size:14px;">💡 ' + currentComfort.k + '</div>' : ''}
+                    </div>
+                </div>
+            `;
+            return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>不想做饭 · 好好吃饭</title><style>${style} body{background:#f0f2f5;margin:0;padding:20px;}</style></head><body>${html}</body></html>`;
+        }
+
+        document.getElementById('comfortExportHtml').addEventListener('click', function() {
+            var fullHtml = getComfortHTML();
+            if (!fullHtml) { alert('请先选一道抚慰主食。'); return; }
+            var blob = new Blob([fullHtml], { type: 'text/html' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `不想做饭_${currentComfort.n}_${new Date().toISOString().slice(0,10)}.html`;
+            a.click();
+        });
+
+        document.getElementById('comfortExportPng').addEventListener('click', function() {
+            if (!currentComfort) { alert('请先选一道抚慰主食。'); return; }
+            var wrapper = document.createElement('div');
+            wrapper.style.cssText = 'padding:24px;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;';
+            var inner = document.createElement('div');
+            inner.style.cssText = 'max-width:600px;width:100%;padding:24px;background:white;border-radius:20px;box-shadow:0 24px 48px rgba(0,0,0,0.2);';
+            var html = `
+                <h2 style="text-align:center;font-size:22px;font-weight:600;margin-bottom:8px;">🍜 ${currentComfort.n}</h2>
+                <p style="text-align:center;color:#5e6f8d;font-style:italic;font-size:16px;padding:10px 0;border-bottom:1px dashed #e9edf4;margin-bottom:16px;">${currentComfort.comfort || '累了就歇歇，好好吃饭。'}</p>
+                <div style="font-size:14px;line-height:1.6;">
+                    ${currentComfort.z && currentComfort.z.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">【主料】</h4><ul style="padding-left:22px;">' + currentComfort.z.map(line => '<li>'+line+'</li>').join('') + '</ul>' : ''}
+                    ${currentComfort.f && currentComfort.f.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">【辅料】</h4><ul style="padding-left:22px;">' + currentComfort.f.map(line => '<li>'+line+'</li>').join('') + '</ul>' : ''}
+                    ${currentComfort.l && currentComfort.l.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">【调料】</h4><ul style="padding-left:22px;">' + currentComfort.l.map(line => '<li>'+line+'</li>').join('') + '</ul>' : ''}
+                    ${currentComfort.o && currentComfort.o.length ? '<h4 style="font-weight:600;margin:10px 0 4px;">操作步骤</h4><ol style="padding-left:22px;">' + currentComfort.o.map(line => '<li>'+line+'</li>').join('') + '</ol>' : ''}
+                    ${currentComfort.k ? '<div style="margin-top:10px;padding:10px 14px;background:#fef9e7;border-radius:8px;border-left:4px solid #e67e22;font-size:14px;">💡 ' + currentComfort.k + '</div>' : ''}
+                </div>
+            `;
+            inner.innerHTML = html;
+            wrapper.appendChild(inner);
+            document.body.appendChild(wrapper);
+            html2canvas(wrapper, { scale: 2, backgroundColor: '#f0f2f5', useCORS: true }).then(function(canvas) {
+                var link = document.createElement('a');
+                link.download = `不想做饭_${currentComfort.n}_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                document.body.removeChild(wrapper);
+            }).catch(function(err) {
+                alert('导出图片失败，请重试。');
+                document.body.removeChild(wrapper);
+                console.error(err);
+            });
+        });
+
+        document.getElementById('resetHistoryBtn').addEventListener('click', resetHistory);
+        renderAll();
+
+        // ====== 注册 Service Worker（内联，无需外部文件） ======
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', e => {
+                    e.waitUntil(self.skipWaiting());
+                });
+                self.addEventListener('activate', e => {
+                    e.waitUntil(self.clients.claim());
+                });
+                self.addEventListener('fetch', e => {
+                    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(blob);
+            navigator.serviceWorker.register(swUrl).then(() => {
+                console.log('Service Worker 注册成功');
+            }).catch(err => {
+                console.log('Service Worker 注册失败:', err);
+            });
+        }
+    </script>
+
+</body>
+</html>
